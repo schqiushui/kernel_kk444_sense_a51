@@ -2326,7 +2326,7 @@ static struct sk_buff *l2cap_create_iframe_pdu(struct l2cap_chan *chan,
 {
 	struct l2cap_conn *conn = chan->conn;
 	struct sk_buff *skb;
-	int err, count, hlen;
+	int err = 0, count, hlen;
 	struct l2cap_hdr *lh;
 
 	BT_DBG("chan %p len %zu", chan, len);

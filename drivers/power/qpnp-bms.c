@@ -819,7 +819,7 @@ static bool is_battery_present(struct qpnp_bms_chip *chip)
 static int get_battery_insertion_ocv_uv(struct qpnp_bms_chip *chip)
 {
 	union power_supply_propval ret = {0,};
-	int rc, vbat;
+	int rc, vbat = 0;
 
 	if (chip->batt_psy == NULL)
 		chip->batt_psy = power_supply_get_by_name("battery");
@@ -1501,7 +1501,7 @@ static int get_prop_bms_current_now(struct qpnp_bms_chip *chip)
 /* Returns coulomb counter in uAh */
 static int get_prop_bms_charge_counter(struct qpnp_bms_chip *chip)
 {
-	int64_t cc_raw;
+	int64_t cc_raw = 0;
 
 	mutex_lock(&chip->bms_output_lock);
 	lock_output_data(chip);
@@ -1515,7 +1515,7 @@ static int get_prop_bms_charge_counter(struct qpnp_bms_chip *chip)
 /* Returns shadow coulomb counter in uAh */
 static int get_prop_bms_charge_counter_shadow(struct qpnp_bms_chip *chip)
 {
-	int64_t cc_raw;
+	int64_t cc_raw = 0;
 
 	mutex_lock(&chip->bms_output_lock);
 	lock_output_data(chip);
@@ -1773,7 +1773,7 @@ static int report_voltage_based_soc(struct qpnp_bms_chip *chip)
 #define REPORT_SOC_WAIT_MS		10000
 static int report_cc_based_soc(struct qpnp_bms_chip *chip)
 {
-	int soc, soc_change;
+	int soc, soc_change = 0;
 	int time_since_last_change_sec, charge_time_sec = 0;
 	unsigned long last_change_sec;
 	struct qpnp_vadc_result result;
@@ -2198,7 +2198,7 @@ out:
 
 static int clamp_soc_based_on_voltage(struct qpnp_bms_chip *chip, int soc)
 {
-	int rc, vbat_uv;
+	int rc, vbat_uv = 0;
 
 	rc = get_battery_voltage(chip, &vbat_uv);
 	if (rc < 0) {
@@ -2373,7 +2373,7 @@ static int calculate_state_of_charge(struct qpnp_bms_chip *chip,
 					int batt_temp)
 {
 	struct soc_params params;
-	int soc, previous_soc, shutdown_soc, new_calculated_soc;
+	int soc = 0, previous_soc, shutdown_soc, new_calculated_soc;
 	int remaining_usable_charge_uah;
 
 	calculate_soc_params(chip, raw, &params, batt_temp);
@@ -2493,7 +2493,7 @@ done_calculating:
 static int calculate_soc_from_voltage(struct qpnp_bms_chip *chip)
 {
 	int voltage_range_uv, voltage_remaining_uv, voltage_based_soc;
-	int rc, vbat_uv;
+	int rc, vbat_uv = 0;
 
 	rc = get_battery_voltage(chip, &vbat_uv);
 	if (rc < 0) {
@@ -2739,7 +2739,7 @@ static void configure_vbat_monitor_high(struct qpnp_bms_chip *chip)
 static void btm_notify_vbat(enum qpnp_tm_state state, void *ctx)
 {
 	struct qpnp_bms_chip *chip = ctx;
-	int vbat_uv;
+	int vbat_uv = 0;
 	struct qpnp_vadc_result result;
 	int rc;
 
@@ -3167,7 +3167,7 @@ static void batfet_open_work(struct work_struct *work)
 {
 	int i;
 	int rc;
-	int result_ua;
+	int result_ua = 0;
 	u8 orig_delay, sample_delay;
 	struct qpnp_bms_chip *chip = container_of(work,
 				struct qpnp_bms_chip,
