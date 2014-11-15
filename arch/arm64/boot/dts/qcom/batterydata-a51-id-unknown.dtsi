@@ -1,0 +1,33 @@
+/* Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+qcom,a51-unknown-batterydata {
+	qcom,fcc-mah = <2600>;
+	qcom,batt-id-kohm = <99>;
+	htc,voltage_max = <4200>;
+	htc,capacity = <2600>;
+	htc,batt_id = <255>;
+	htc,id_raw_min = <(-1)>;
+	htc,id_raw_max = <(-1)>;
+	htc,type = <0>;
+	htc,model_name = "UNKNOWN";
+
+	htc,vth-sf-lut {
+		qcom,lut-col-legend = <3400 3448 3485 3515 3540 3561 3581 3602 3626 3653 3683 3716 3750 3788 3835 3887 3934 3985 4040 4105 4201>;
+		qcom,lut-data = <0 5 10 15 20 25 30 35 40 45 50 55 60 65 70 75 80 85 90 95 100>;
+	};
+
+	htc,rbatt-temp-lut {
+		qcom,lut-col-legend = <(-20) (-10) 0>;
+		qcom,lut-data = <1250 650 330>;
+	};
+};

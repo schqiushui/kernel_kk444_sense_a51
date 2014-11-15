@@ -1,0 +1,109 @@
+#
+# HTC_DEBUG stability Kconfig
+#
+
+config HTC_DEBUG_KP
+	default y
+	depends on HTC_DEBUG
+	bool "HTC style kernel panic debug features"
+	help
+	  Say Y here if you want the HTC style kernel panic debug features
+
+config HTC_PROCESS_DEBUG
+        bool "process/thread debug support"
+        default y
+        help
+	  This option enables kernel debug log to check if any
+          assigned process receives signal or unexpected exit
+
+config HTC_DEBUG_SAVE_BOOT_MSG
+	default y
+	depends on HTC_DEBUG
+	bool "HTC debug: saving kernel log of booting to memory"
+
+config HTC_DEBUG_RTB
+	default y
+	depends on HTC_DEBUG && MSM_RTB
+	bool "HTC style rtb debug features"
+	help
+	  Say Y here if you want the HTC style rtb debug features
+
+config HTC_DEBUG_WORKQUEUE
+	default y
+	depends on HTC_DEBUG
+	bool "HTC style workqueue debug features"
+	help
+	Say Y here if you want the HTC style workqueue debug features
+
+config DIRTY_SYSTEM_DETECTOR
+        default y
+        bool "HTC dirty file detector for /system partition"
+
+config HTC_DEBUG_BINDER_WRITE
+	default n
+	bool "HTC debug feature for system_server binder write"
+	depends on HTC_DEBUG
+	help
+	  Say Y here if you want the HTC debug feature for system_server binder
+	  write
+
+config HTC_FD_MONITOR
+	bool "fd operation monitor mechanism"
+	default n
+
+config HTC_DEBUG_DYING_PROCS
+	default y
+	bool "HTC debug feature for recording dying processes"
+	depends on HTC_DEBUG
+	help
+	  This option enables the recording of latest 10 killed processes in
+	  /proc/dying_processes
+
+config HTC_DEBUG_VMALLOC_DUMP
+	default y
+	bool "HTC style vmalloc fail debug features"
+	depends on HTC_DEBUG
+	help
+	  This option enables the dump for vmalloc info when vmalloc failed.
+	  The same information could also be get under /proc/vmallocinfo
+
+config HTC_DEBUG_HBRAMLOG
+	bool "HTC style ram console debug features"
+	default y
+	depends on HTC_DEBUG && PSTORE_CONSOLE
+	help
+	  Say Y here if you want the HTC style ram console debug features
+
+config SLUB_LIGHT_WEIGHT_DEBUG_ON
+	bool "SLUB light weight debugging on by default"
+	depends on SLUB && SLUB_DEBUG && SLUB_DEBUG_ON && !KMEMCHECK
+	default n
+	help
+	  Light weight memory corruption debugging for slub. Only SLAB_STORE_USER
+	  and SLAB_DEBUG_FREE was choosen.
+
+config HTC_DEBUG_PAGE_USER_TRACE
+	bool "Record call trace of page user in page structure"
+	depends on PAGE_POISONING
+	default n
+	help
+	  For debugging purpose, add call trace of user (freer and
+	  allocator) to page structure
+
+config HTC_DEBUG_PAGE_ENTRIES_NR
+	int
+	default 8
+
+config HTC_INIT_COREDUMP
+        depends on COREDUMP
+        default n
+        bool "HTC debug: enable coredump for INIT"
+        help
+          Enable COREDUMP for INIT.
+
+config HTC_WFE_DISABLE
+	default n
+	bool "Disable WFE instruction to avoid CPU issue"
+	help
+	  Disable ARM wfe instruction which might cause CPU hang and trigger
+	  watchdog reset.

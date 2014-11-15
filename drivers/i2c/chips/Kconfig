@@ -1,0 +1,118 @@
+#
+# Miscellaneous I2C chip drivers configuration
+#
+
+menu "Miscellaneous I2C Chip support"
+
+config TI_TCA6418
+	tristate "TCA6418 GPIO expander support"
+	depends on I2C=y
+	help
+	  If you say yes here you get support for Texas Instruments's
+	  GPIO expander TCA6418.
+
+config INPUT_CWSTM32
+       tristate "CyWee CWSTM32 Sensor HUB"
+       depends on I2C && INPUT
+       select INPUT_POLLDEV
+       help
+         This driver provides support for CWSTM32 Sensor HUB.
+
+config SENSORS_AK8963_DOE_PLUS
+	tristate "AK8963 compass support with DOE Plus"
+	default n
+	depends on I2C
+	help
+	  If you say yes here you get support for Asahi Kasei's
+	  orientation sensor with DOE Plus.
+
+
+config BOSCH_BMA250
+        tristate "BMA250 acceleration sensor support"
+	depends on I2C=y
+	help
+	  If you say yes here you get support for Bosch Sensortec's
+	  acceleration sensors BMA250.
+
+config BOSCH_BMA250_ENABLE_INT1
+	tristate "BMA250 acceleration sensor interrupt INT1 support"
+	depends on BOSCH_BMA250=y
+        help
+	  If you say yes here you get INT1 support for Bosch Sensortec's
+	  acceleration sensors BMA250.
+
+config BOSCH_BMA250_ENABLE_INT2
+	tristate "BMA250 acceleration sensor interrupt INT2 support"
+	depends on BOSCH_BMA250=y
+	help
+	  If you say yes here you get INT2 support for Bosch Sensortec's
+	  acceleration sensors BMA250.
+
+config CIR_ALWAYS_READY
+        bool "BMA250 CIR Always Ready"
+	default n
+	help
+	  Enable CIR Always Ready
+
+config KIONIX_KXTJ2
+        tristate "KXTJ2 acceleration sensor support"
+	depends on I2C=y
+	help
+	  If you say yes here you get support for Kionix Sensortec's
+	  acceleration sensors KXTJ2.
+
+config YAMAHA_YAS532
+        tristate "YAS53x compass sensor support"
+	depends on I2C=y
+	help
+	  If you say yes here you get support for Yamaha Sensortec's
+	  acceleration sensors YAS532.
+
+config SENSORS_NFC_PN544
+	tristate "PN544 NFC sensor support"
+	depends on I2C=y
+	help
+	PN544 NFC Driver implemented.
+
+config SENSORS_NFC_IRQ_WORKAROUND
+	tristate "PN544 NFC sensor IRQ workaround"
+	depends on SENSORS_NFC_PN544=y
+	help
+	PN547 NFC Driver IRQ workaround.
+
+config INPUT_CAPELLA_CM36686
+        tristate "CM36686 proximity and light sensor"
+        help
+          Say Y here to enable the CM36686 Short Distance Proximity
+          Sensor with Ambient Light Sensor.
+
+config AMP_TFA9887
+        tristate "NXP TFA9887 Speaker AMP Driver"
+	depends on I2C=y
+        help
+         NXP TFA9887 Speaker AMP Driver implemented by HTC.
+
+config AMP_TFA9887L
+        tristate "NXP TFA9887L Speaker AMP Driver"
+	depends on I2C=y
+        help
+         NXP TFA9887L Speaker AMP Driver implemented by HTC.
+
+config AMP_TPA6130A2
+        tristate "TI TPA6130A2 Headset AMP Driver"
+	depends on I2C=y
+        help
+         TI TPA6130A2 Headset AMP Driver implemented by HTC.
+
+config AMP_TPA2011
+        tristate "TI TPA2011 Receiver AMP"
+	default n
+        help
+         TI TPA2011 Receiver AMP control.
+
+config SYNC_TOUCH_STATUS
+        bool "Sync touch i2c switch status to sensor hub"
+	default n
+	help
+	  Sync touch i2c switch status to sensor hub
+endmenu

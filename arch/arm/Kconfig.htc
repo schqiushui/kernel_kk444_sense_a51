@@ -1,0 +1,143 @@
+comment "HTC Debugging Features"
+menuconfig HTC_DEBUG
+	bool "HTC Debugging Feature Switch"
+	default y
+	help
+	  Enable collection of debug features.
+	  This feature is enabled in defconfig.
+
+comment "HTC features"
+menuconfig HTC_FEATURES
+        bool "HTC Implement Features"
+        default n
+        help
+          Enable collection of HTC features.
+          This feature is enabled in defconfig.
+
+config HTC_FEATURES_FINAL_EFS_SYNC
+	bool "Final EFS SYNC"
+	depends on HTC_FEATURES
+	default n
+	help
+	  Enable the trigger of final efs sync before shutdown/reboot
+	  This feature is enabled in defconfig.
+
+config HTC_FEATURES_SSR
+       bool "HTC style ssr features"
+       depends on HTC_FEATURES && MSM_SUBSYSTEM_RESTART
+       default n
+       help
+         Say Y here if you want the HTC style ssr features
+
+config HTC_FEATURES_SSR_MODEM_ENABLE
+       bool "HTC style modem ssr features"
+       depends on HTC_FEATURES_SSR
+       default n
+       help
+         Say Y here if you want the HTC style for modem ssr features
+
+config HTC_FEATURES_SSR_WCNSS_ENABLE
+       bool "HTC style wcnss ssr features"
+       depends on HTC_FEATURES_SSR
+       default n
+       help
+
+config HTC_DEBUG_AUDIO
+       bool "Trigger ramdump for audio error"
+       default n
+       depends on HTC_DEBUG
+       help
+         Say Y here if you want the HTC audio debug enable
+
+config HTC_DEBUG_FOOTPRINT
+       bool "Record footprint on some actions"
+       default n
+       depends on HTC_DEBUG
+       help
+         Record footprints for debug tracking.
+         Especially for suspend/resume and boot.
+
+config HTC_DEFAULT_ENABLED_FEATURES
+	bool "Select default enabled config for HTC projects"
+	default y
+	select COMPACTION
+	help
+	  Default y to select other configs which should be enabled by default
+	  for HTC projects.
+
+config HTC_BUILD_EDIAG
+        bool "Build in embedded diag fixes"
+        default n
+        help
+          For embedded diag we need to do some additional fixes.
+
+config ENLARGE_RADIO_BUFFER
+        bool "Enlarge radio buffer"
+        default n
+        help
+          Enlarge radio buffer for two rild project.
+
+config HTC_RPM_CMD
+	bool "HTC homebrew command interface"
+	depends on MSM_RPM || MSM_RPM_SMD
+	default n
+	help
+	  This expose HTC RPM command interface for different purpose.
+
+config HTC_POWER_HACK
+       bool "HTC POWER HACK"
+       help
+         Say Y here if HTC POWER HACK
+
+config HTC_DEBUG_SSR
+       bool "HTC style subsys restart debug features"
+       depends on HTC_DEBUG && MSM_SUBSYSTEM_RESTART
+       help
+         Say Y here if you want the HTC style subsys restart debug features
+
+config KSM_HTC_POLICY
+	bool "Enable KSM by HTC strategy"
+	depends on KSM
+	help
+	  Improve power drop impact when KSM is on.
+
+config HTC_FEATURES_RIL_PCN0001_REBOOT_WITH_ERASE_EFS
+       bool "Reboot with ERASE_EFS reason when SMSM_ERASE_EFS raised"
+       default y
+       help
+         When modem met fatal,
+         It will enable bit RESTART_MODE_ERASE_EFS.
+         Then when device reboot, it will clean up EFS.
+
+config HTC_DEBUG_RIL_PCN0002_DUMP_STACK
+       bool "Dump call stack when modem crash"
+       help
+         Say Y here if you want dump call stack when modem crash
+
+config HTC_FEATURES_RIL_PCN0003_HTC_MONITOR
+	tristate "HTC_FEATURES_RIL_PCN0003_HTC_MONITOR"
+	default n
+	---help---
+	  Come up with a way to add information of data usage in attribute file
+	  for identifying the process that requested for data transmission.
+
+config HTC_FEATURES_RIL_PCN0004_HTC_GARBAGE_FILTER
+	tristate "HTC_FEATURES_RIL_PCN0004_HTC_GARBAGE_FILTER"
+	default n
+	depends on MSM_SMD
+	---help---
+	  Garbage Filter of TCP
+
+config HTC_DEBUG_RIL_PCN0005_HTC_DUMP_SMSM_LOG
+	tristate "HTC_DEBUG_RIL_PCN0005_HTC_DUMP_SMSM_LOG"
+	default n
+	depends on MSM_SMD
+	---help---
+	  Dump SMSM log message
+
+config HTC_DEBUG_RIL_PCN0006_HTC_DUMP_BAM_DMUX_LOG
+	tristate "HTC_DEBUG_RIL_PCN0006_HTC_DUMP_BAM_DMUX_LOG"
+	default n
+	depends on MSM_BAM_DMUX
+	---help---
+	  Dump BAM DMUX log message

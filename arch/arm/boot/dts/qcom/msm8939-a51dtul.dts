@@ -1,0 +1,23 @@
+/* Copyright (c) 2014, The Linux Foundation. All rights reserved.
+*
+* This program is free software; you can redistribute it and/or modify
+* it under the terms of the GNU General Public License version 2 and
+* only version 2 as published by the Free Software Foundation.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*/
+
+/dts-v1/;
+
+#include "msm8939-a51dtul.dtsi"
+
+/ {
+	model = "Qualcomm Technologies, Inc. MSM 8939 CDP";
+	compatible =  "htc,msm8939", "htc,a51dtul", "qcom,msm8939-cdp", "qcom,msm8939", "qcom,cdp";
+	htc,project-id = <342 0x10000>,<343 0x10000>,<344 0x10000>,<345 0x10000>;   /* htc,project-id = <PID soc_vision> */
+	htc,hw-id = <0 0>,<1 0>,<2 0>,<128 0>;   /* htc,hw-id = <PCBID (Reserved)> */
+	qcom,board-id = <1 0>;
+};

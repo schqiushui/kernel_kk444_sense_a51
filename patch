@@ -1,0 +1,13 @@
+diff --git a/arch/arm/boot/dts/qcom/msm8916.dtsi b/arch/arm/boot/dts/qcom/msm8916.dtsi
+index d772ef8..82d3a45 100755
+--- a/arch/arm/boot/dts/qcom/msm8916.dtsi
++++ b/arch/arm/boot/dts/qcom/msm8916.dtsi
+@@ -1468,7 +1468,7 @@ ZE */
+ 		compatible = "qcom,msm-thermal";
+ 		qcom,sensor-id = <5>;
+ 		qcom,poll-ms = <250>;
+-		qcom,limit-temp = <60>;
++		qcom,limit-temp = <110>;
+ 		qcom,temp-hysteresis = <10>;
+ 		qcom,freq-step = <2>;
+ 		qcom,freq-control-mask = <0xf>;
