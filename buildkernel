@@ -1,0 +1,20 @@
+#!/bin/bash          
+
+#Setup proper path to rid missing gcc warning
+PATH=$PATH:~/gcc/arm-cortex_a15-linux-gnueabihf-linaro_4.9.2-2014.10/bin
+
+#Keep thangs sqeaky
+echo
+echo
+echo " Makin thangs squeaky clean "
+make clean
+#xxx= Your config name
+echo
+echo
+echo " Run defconfig "
+make ARCH=arm a51dtul_defconfig
+#Change arm-eabi- to what you current toolchain uses default is gcc4.6 & gcc4.7 toolchains
+echo
+echo
+echo " Set to arm at 375, for about 20 to 40 minutes "
+make ARCH=arm CROSS_COMPILE=~/gcc/arm-cortex_a15-linux-gnueabihf-linaro_4.9.2-2014.10/bin/arm-cortex_a15-linux-gnueabihf- -j4
