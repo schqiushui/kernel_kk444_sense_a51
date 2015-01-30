@@ -1560,6 +1560,11 @@ static int msm_mi2s_snd_startup(struct snd_pcm_substream *substream)
 	pr_info("%s(): substream = %s  stream = %d\n", __func__,
 		 substream->name, substream->stream);
 
+#ifdef CONFIG_AMP_TPA6130A2
+		if (hs_amp_on == 1 && substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
+			tpa6130a2_HSMute(0);
+#endif
+
 	if (!pdata->codec_type) {
 		pr_info("%s: mclk_rsc_ref %d\n", __func__,
 			atomic_read(&pdata->mclk_rsc_ref));
@@ -1668,7 +1673,9 @@ static void msm_mi2s_snd_shutdown(struct snd_pcm_substream *substream)
 
 		if(hs_amp_on == 1 && substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
 			pr_info("%s: hs_amp_on==1 trigger-hs amp mute\n", __func__);
-			tpa6130a2_HSMute();
+#ifdef CONFIG_AMP_TPA6130A2
+			tpa6130a2_HSMute(1);
+#endif
 		}
 
 		ret = mi2s_clk_ctl(substream, false);

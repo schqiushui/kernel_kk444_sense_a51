@@ -424,6 +424,8 @@ struct mmc_host {
 	bool			card_clock_off;
 	unsigned int		removed_cnt;
 	unsigned int		crc_count;
+	spinlock_t		lock_cd_pin;
+	int			cd_pin_depth;
 	char			do_bkops[MMC_BKOPS_FLAG_LENGTH];
 	unsigned long		private[0] ____cacheline_aligned;
 };

@@ -61,9 +61,40 @@ dtb-$(CONFIG_ARCH_MSM8916) += msm8916-sim.dtb \
 	msm8936-mtp-smb1360.dtb \
 	msm8936-mtp-wcd9306.dtb
 
+ifeq ($(CONFIG_MACH_A11_UL), y)
+endif
+
+ifeq ($(CONFIG_MACH_A21_DCGL), y)
+endif
+
+ifeq ($(CONFIG_MACH_A21_UL), y)
+endif
+
+ifeq ($(CONFIG_MACH_A21_DUGL), y)
+endif
+
+ifeq ($(CONFIG_MACH_A21_DTGL), y)
+endif
+
+ifeq ($(CONFIG_MACH_A21_DTUL), y)
+endif
+
+ifeq ($(CONFIG_MACH_A31_UL), y)
+endif
+
+ifeq ($(CONFIG_MACH_A31_DUGL), y)
+endif
+
+ifeq ($(CONFIG_MACH_A31_DTGL), y)
+endif
+
+ifeq ($(CONFIG_MACH_A31_DTUL), y)
+endif
+
 ifeq ($(CONFIG_MACH_A51_DTUL), y)
 	dtb-$(CONFIG_ARCH_MSM8916)  += msm8939-a51dtul.dtb
 endif
+
 
 dtb-$(CONFIG_ARCH_MSM8226) += msm8226-sim.dtb \
 	msm8226-fluid.dtb \

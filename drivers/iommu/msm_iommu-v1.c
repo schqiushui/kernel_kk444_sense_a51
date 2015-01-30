@@ -334,34 +334,6 @@ static void __sync_tlb(struct msm_iommu_drvdata *iommu_drvdata, int ctx)
 		check_tlb_sync_state(iommu_drvdata, ctx);
 }
 
-static int __flush_iotlb_va(struct iommu_domain *domain, unsigned int va)
-{
-	struct msm_iommu_priv *priv = domain->priv;
-	struct msm_iommu_drvdata *iommu_drvdata;
-	struct msm_iommu_ctx_drvdata *ctx_drvdata;
-	int ret = 0;
-
-	list_for_each_entry(ctx_drvdata, &priv->list_attached, attached_elm) {
-		BUG_ON(!ctx_drvdata->pdev || !ctx_drvdata->pdev->dev.parent);
-
-		iommu_drvdata = dev_get_drvdata(ctx_drvdata->pdev->dev.parent);
-		BUG_ON(!iommu_drvdata);
-
-
-		ret = __enable_clocks(iommu_drvdata);
-		if (ret)
-			goto fail;
-
-		SET_TLBIVA(iommu_drvdata->cb_base, ctx_drvdata->num,
-			   ctx_drvdata->asid | (va & CB_TLBIVA_VA));
-		mb();
-		__sync_tlb(iommu_drvdata, ctx_drvdata->num);
-		__disable_clocks(iommu_drvdata);
-	}
-fail:
-	return ret;
-}
-
 static int __flush_iotlb(struct iommu_domain *domain)
 {
 	struct msm_iommu_priv *priv = domain->priv;
@@ -392,7 +364,8 @@ fail:
 
 static void __reset_iommu(struct msm_iommu_drvdata *iommu_drvdata)
 {
-	int i, smt_size;
+	int i, smt_size, res;
+	unsigned long val;
 	void __iomem *base = iommu_drvdata->base;
 
 	if (iommu_drvdata->model != MMU_500)
@@ -400,7 +373,16 @@ static void __reset_iommu(struct msm_iommu_drvdata *iommu_drvdata)
 	SET_CR2(base, 0);
 	SET_GFAR(base, 0);
 	SET_GFSRRESTORE(base, 0);
+
+	
 	SET_TLBIALLNSNH(base, 0);
+	mb();
+	SET_TLBGSYNC(base, 0);
+	res = readl_tight_poll_timeout(GLB_REG(TLBGSTATUS, base), val,
+			(val & TLBGSTATUS_GSACTIVE) == 0, 5000000);
+	if (res)
+		BUG();
+
 	smt_size = GET_IDR0_NUMSMRG(base);
 
 	for (i = 0; i < smt_size; i++)
@@ -495,7 +477,6 @@ static void __reset_context(struct msm_iommu_drvdata *iommu_drvdata, int ctx)
 	SET_PAR(base, ctx, 0);
 	SET_PRRR(base, ctx, 0);
 	SET_SCTLR(base, ctx, 0);
-	SET_TLBIALL(base, ctx, 0);
 	SET_TTBCR(base, ctx, 0);
 	SET_TTBR0(base, ctx, 0);
 	SET_TTBR1(base, ctx, 0);
@@ -531,35 +512,9 @@ static void msm_iommu_assign_ASID(const struct msm_iommu_drvdata *iommu_drvdata,
 				  struct msm_iommu_ctx_drvdata *curr_ctx,
 				  struct msm_iommu_priv *priv)
 {
-	unsigned int found = 0;
 	void __iomem *cb_base = iommu_drvdata->cb_base;
-	unsigned int i;
-	unsigned int ncb = iommu_drvdata->ncb;
-	struct msm_iommu_ctx_drvdata *tmp_drvdata;
 
-	
-	if (!list_empty(&priv->list_attached)) {
-		tmp_drvdata = list_first_entry(&priv->list_attached,
-				struct msm_iommu_ctx_drvdata, attached_elm);
-
-		++iommu_drvdata->asid[tmp_drvdata->asid - 1];
-		curr_ctx->asid = tmp_drvdata->asid;
-		found = 1;
-	}
-
-	
-	if (!found) {
-		for (i = 0; i < ncb; ++i) {
-			if (iommu_drvdata->asid[i] == 0) {
-				++iommu_drvdata->asid[i];
-				curr_ctx->asid = i + 1;
-				found = 1;
-				break;
-			}
-		}
-		BUG_ON(!found);
-	}
-
+	curr_ctx->asid = curr_ctx->num;
 	msm_iommu_set_ASID(cb_base, curr_ctx->num, curr_ctx->asid);
 }
 
@@ -709,6 +664,11 @@ static void __program_context(struct msm_iommu_drvdata *iommu_drvdata,
 	}
 
 	msm_iommu_assign_ASID(iommu_drvdata, ctx_drvdata, priv);
+	mb();
+	SET_TLBIASID(iommu_drvdata->cb_base, ctx_drvdata->num,
+		                             ctx_drvdata->asid);
+        mb();
+	__sync_tlb(iommu_drvdata, ctx_drvdata->num);
 
 	
 	SET_CB_SCTLR_M(cb_base, ctx, 1);
@@ -888,9 +848,9 @@ static void msm_iommu_detach_dev(struct iommu_domain *domain,
 
 	SET_TLBIASID(iommu_drvdata->cb_base, ctx_drvdata->num,
 					ctx_drvdata->asid);
+	mb();
+	__sync_tlb(iommu_drvdata, ctx_drvdata->num);
 
-	BUG_ON(iommu_drvdata->asid[ctx_drvdata->asid - 1] == 0);
-	iommu_drvdata->asid[ctx_drvdata->asid - 1]--;
 	ctx_drvdata->asid = -1;
 
 	__reset_context(iommu_drvdata, ctx_drvdata->num);
@@ -933,7 +893,7 @@ static int msm_iommu_map(struct iommu_domain *domain, unsigned long va,
 	if (ret)
 		goto fail;
 
-	ret = __flush_iotlb_va(domain, va);
+	ret = __flush_iotlb(domain);
 fail:
 	mutex_unlock(&msm_iommu_lock);
 	return ret;
@@ -955,7 +915,7 @@ static size_t msm_iommu_unmap(struct iommu_domain *domain, unsigned long va,
 	if (ret < 0)
 		goto fail;
 
-	ret = __flush_iotlb_va(domain, va);
+	ret = __flush_iotlb(domain);
 fail:
 	mutex_unlock(&msm_iommu_lock);
 

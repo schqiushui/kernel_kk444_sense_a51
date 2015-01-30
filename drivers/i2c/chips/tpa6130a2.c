@@ -287,11 +287,22 @@ static void tpa6130a2_volume_ramp(struct work_struct *work)
 	}
 }
 
-void tpa6130a2_HSMute(void)
+void tpa6130a2_HSMute(int mute)
 {
-	pr_info("%s : mute HS AMP ", __func__);
-	tpa6130a2_channel_enable(TPA6130A2_HP_EN_R | TPA6130A2_HP_EN_L, 0);
+	struct tpa6130a2_data *data = NULL;
+	data = i2c_get_clientdata(tpa6130a2_client);
+
+	if (data == NULL) {
+		pr_info("%s : tpa6130a2_client does not exist", __func__);
+		return;
+	}
+
+	pr_info("%s : mute HS AMP %d (pw = %d)", __func__, mute, data->power_state);
+	if (data->power_state == 1 && (mute == 0 || mute == 1)) {
+		tpa6130a2_channel_enable(TPA6130A2_HP_EN_R | TPA6130A2_HP_EN_L, !mute);
+	}
 }
+
 
 static int tpa6130a2_power(int power)
 {

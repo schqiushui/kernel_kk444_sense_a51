@@ -90,7 +90,8 @@ enum TPA6130_Mode {
 	TPA6130_MODE_NUM
 };
 
-void tpa6130a2_HSMute(void);
+void tpa6130a2_HSMute(int mute);
+
 
 #define AMP_IOCTL_MAGIC 't'
 #define TPA6130_SET_UNMUTE      _IOW(AMP_IOCTL_MAGIC, 0x04, unsigned)

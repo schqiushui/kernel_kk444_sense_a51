@@ -329,6 +329,32 @@ done:
 	mutex_unlock(&kernel_map_global_lock);
 }
 
+static void kgsl_dump_memdesc(struct kgsl_memdesc *memdesc, int restore)
+{
+	int i, sglen = memdesc->sglen;
+	struct scatterlist *sg, *sg2;
+
+	pr_warn("%s: memdesc=%p {size=%u sglen=%d, ts=%lu, created since %d msec}, restore=%d\n",
+		__func__, memdesc, memdesc->size, memdesc->sglen,
+		memdesc->sg_create, jiffies_to_msecs(jiffies - memdesc->sg_create), restore);
+
+	if (!memdesc->sg_backup) {
+		pr_warn("%s: No backup sgtable\n", __func__);
+		return;
+	}
+	for (i=0; i < sglen; i++) {
+		sg = &memdesc->sg[i];
+		sg2 = &memdesc->sg_backup[i];
+		pr_warn("  [%3d/%3d] sg={0x%lx, %u, %u, %u}, sg2={0x%lx, %u, %u, %u}\n", i, sglen,
+			 sg->page_link, sg->offset, sg->length, sg->dma_address,
+			 sg2->page_link, sg2->offset, sg2->length, sg2->dma_address);
+	}
+	if (restore)
+		memcpy(memdesc->sg, memdesc->sg_backup, sglen * sizeof(struct scatterlist));
+
+	return;
+}
+
 static void kgsl_page_alloc_free(struct kgsl_memdesc *memdesc)
 {
 	int i = 0;
@@ -343,8 +369,24 @@ static void kgsl_page_alloc_free(struct kgsl_memdesc *memdesc)
 	BUG_ON(memdesc->hostptr);
 
 	if (memdesc->sg)
-		for_each_sg(memdesc->sg, sg, sglen, i)
+		for_each_sg(memdesc->sg, sg, sglen, i){
+			if (!IS_ALIGNED(sg->length, PAGE_SIZE) || sg->offset || sg->dma_address) {
+				
+				pr_warn("%s: memdesc=%p {size=%u sglen=%d, ts=%lu, created since %d msec}\n",
+					__func__, memdesc, memdesc->size, memdesc->sglen,
+					memdesc->sg_create, jiffies_to_msecs(jiffies - memdesc->sg_create));
+				pr_warn("%s: sg=%p [%d/%d] {page=0x%lx, off=%u, len=%u, dma=%u}\n",
+					__func__, sg, i, sglen, sg->page_link, sg->offset, sg->length, sg->dma_address);
+
+				kgsl_dump_memdesc(memdesc, true);
+			}
 			__free_pages(sg_page(sg), get_order(sg->length));
+		}
+
+	if (memdesc->sg_backup) {
+		kgsl_free(memdesc->sg_backup);
+		memdesc->sg_backup = NULL;
+	}
 
 	if (priv)
 		kgsl_process_sub_stats(priv, KGSL_MEM_ENTRY_PAGE_ALLOC, memdesc->size);
@@ -588,7 +630,12 @@ _kgsl_sharedmem_page_alloc(struct kgsl_memdesc *memdesc,
 
 	memdesc->sglen = sglen;
 	memdesc->size = size;
-
+	memdesc->sg_create = jiffies;
+	memdesc->sg_backup = kgsl_malloc(sglen * sizeof(struct scatterlist));
+	if (memdesc->sg_backup){
+		memcpy(memdesc->sg_backup, memdesc->sg, sglen * sizeof(struct scatterlist));
+		kmemleak_not_leak(memdesc->sg_backup);
+	}
 	for (j = 0; j < pcount; j += step) {
 		step = min(step, pcount - j);
 

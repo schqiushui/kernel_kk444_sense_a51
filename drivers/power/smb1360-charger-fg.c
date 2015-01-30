@@ -5087,7 +5087,9 @@ static int smb1360_probe(struct i2c_client *client,
 	pcbid = of_machine_pcbid();
 	bid = board_get_bid();
 	pr_info("pid(%d), pcbid(%d), bid(%d)\n", pid, pcbid, bid);
-	if (!pid || !pcbid || !bid) {
+	if (!pid || pid == (-1)
+			|| pcbid == (-1)
+			|| !bid) {
 		wa_for_10mohm = false;
 		pr_warn("pid(%d) or pcbid(%d) or bid(%d) is wrong\n",
 				pid, pcbid, bid);
@@ -5104,6 +5106,9 @@ static int smb1360_probe(struct i2c_client *client,
 				wa_for_10mohm = true;
 			else
 				wa_for_10mohm = false;
+			break;
+		case 379: 
+			wa_for_10mohm = true;
 			break;
 		default:
 			wa_for_10mohm = false;

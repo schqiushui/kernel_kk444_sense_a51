@@ -35,6 +35,9 @@ void mmc_enable_detection(struct work_struct *work)
 	struct mmc_host *host = container_of(work, struct mmc_host, enable_detect.work);
 
 	enable_irq(host->slot.cd_irq);
+	spin_lock(&host->lock_cd_pin);
+	host->cd_pin_depth--;
+	spin_unlock(&host->lock_cd_pin);
 	printk("%s %s leave\n", mmc_hostname(host), __func__);
 }
 EXPORT_SYMBOL(mmc_enable_detection);
@@ -80,8 +83,13 @@ static irqreturn_t mmc_gpio_cd_irqt(int irq, void *dev_id)
 	struct mmc_gpio *ctx = host->slot.handler_priv;
 	int status;
 
-	disable_irq_nosync(host->slot.cd_irq);
-	queue_delayed_work(enable_detection_workqueue, &host->enable_detect, msecs_to_jiffies(50));
+	spin_lock(&host->lock_cd_pin);
+	if (host->cd_pin_depth == 0) {
+		disable_irq_nosync(host->slot.cd_irq);
+		queue_delayed_work(enable_detection_workqueue, &host->enable_detect, msecs_to_jiffies(50));
+		host->cd_pin_depth++;
+	}
+	spin_unlock(&host->lock_cd_pin);
 
 	if (!host->ops)
 		goto out;
@@ -207,6 +215,9 @@ int mmc_gpio_request_cd(struct mmc_host *host, unsigned int gpio)
 	enable_detection_workqueue = create_singlethread_workqueue("enable_sd_detect");
 	if (!enable_detection_workqueue)
 		return -ENOMEM;
+
+	host->cd_pin_depth = 0;
+	spin_lock_init(&host->lock_cd_pin);
 
 	ctx = host->slot.handler_priv;
 

@@ -45,6 +45,9 @@ extern uint32_t SMSM_NUM_HOSTS;
 #define SMSM_TIMEWAIT          0x00000400
 #define SMSM_TIMEINIT          0x00000800
 #define SMSM_PROC_AWAKE        0x00001000
+#ifdef CONFIG_HTC_FEATURES_RIL_PCN0007_FINAL_EFS_SYNC
+#define SMSM_APPS_REBOOT       0x00020000
+#endif
 #if defined(CONFIG_HTC_FEATURES_RIL_PCN0001_REBOOT_WITH_ERASE_EFS)
 #define SMSM_ERASE_EFS         0x00200000
 #endif
@@ -54,7 +57,9 @@ extern uint32_t SMSM_NUM_HOSTS;
 
 #define SMSM_A2_POWER_CONTROL  0x00000002
 #define SMSM_A2_POWER_CONTROL_ACK  0x00000800
-
+#ifdef CONFIG_HTC_FEATURES_RIL_PCN0007_FINAL_EFS_SYNC
+#define SMSM_SYSTEM_PWRDWN_USR 0x40000000
+#endif
 #ifdef CONFIG_MSM_SMD
 int smsm_change_state(uint32_t smsm_entry,
 		      uint32_t clear_mask, uint32_t set_mask);

@@ -2115,6 +2115,7 @@ static int memdesc_sg_virt(struct kgsl_memdesc *memdesc, struct file *vmfile)
 		goto out;
 	}
 	memdesc->sglen = sglen;
+	memdesc->sg_create = jiffies;
 
 	sg_init_table(memdesc->sg, sglen);
 

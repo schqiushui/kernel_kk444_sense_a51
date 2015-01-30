@@ -48,6 +48,12 @@
 #include "smd_private.h"
 #include "smem_private.h"
 
+#ifdef CONFIG_HTC_FEATURES_RIL_PCN0007_FINAL_EFS_SYNC
+#include <linux/reboot.h>
+#include <mach/devices_cmdline.h>
+#include "smd_private.h"
+#endif
+
 #ifdef CONFIG_HTC_DEBUG_RIL_PCN0005_HTC_DUMP_SMSM_LOG
 #include <linux/debugfs.h>
 void smsm_dbg_log_event(const char * event, ...);
@@ -3192,6 +3198,56 @@ const struct file_operations smsm_dbg_fops = {
 };
 #endif
 
+#ifdef CONFIG_HTC_FEATURES_RIL_PCN0007_FINAL_EFS_SYNC
+static void set_modem_efs_sync(void)
+{
+	smsm_change_state(SMSM_APPS_STATE, SMSM_APPS_REBOOT, SMSM_APPS_REBOOT);
+	printk(KERN_INFO "[K] %s: wait for modem efs_sync\n", __func__);
+}
+
+static int check_modem_efs_sync(void)
+{
+	return (smsm_get_state(SMSM_MODEM_STATE) & SMSM_SYSTEM_PWRDWN_USR);
+}
+
+static void check_modem_efs_sync_timeout(unsigned timeout)
+{
+	while (timeout > 0 && !check_modem_efs_sync()) {
+		msleep(1000);
+		timeout--;
+	}
+	if (timeout <= 0)
+		pr_notice("%s: modem efs_sync timeout.\n", __func__);
+	else
+		pr_info("%s: modem efs_sync done.\n", __func__);
+}
+
+static int notify_efs_sync_call
+	(struct notifier_block *this, unsigned long code, void *_cmd)
+{
+	pr_info("%s:board_mfg_mode=[%d]\n", __func__, board_mfg_mode());
+
+	switch (code) {
+	case SYS_RESTART:
+	case SYS_POWER_OFF:
+		
+		if ( board_mfg_mode() <= MFG_MODE_MINI ) {
+			set_modem_efs_sync();
+			check_modem_efs_sync_timeout(10);
+		}
+
+		break;
+	}
+
+	return NOTIFY_DONE;
+}
+
+static struct notifier_block notify_efs_sync_notifier = {
+	.notifier_call = notify_efs_sync_call,
+};
+
+#endif
+
 int __init msm_smd_init(void)
 {
 	static bool registered;
@@ -3247,6 +3303,11 @@ int __init msm_smd_init(void)
 	} while(0);
 #endif
 #endif
+
+#ifdef CONFIG_HTC_FEATURES_RIL_PCN0007_FINAL_EFS_SYNC
+	register_reboot_notifier(&notify_efs_sync_notifier);
+#endif
+
 	return 0;
 }
 

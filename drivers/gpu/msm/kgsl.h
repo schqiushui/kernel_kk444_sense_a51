@@ -141,6 +141,9 @@ struct kgsl_memdesc {
 	unsigned int flags; 
 	struct kgsl_process_private *private;
 	struct device *dev;
+
+	unsigned long sg_create;
+	struct scatterlist *sg_backup;
 };
 
 #if 0

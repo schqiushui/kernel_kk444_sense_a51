@@ -198,8 +198,9 @@
 			qcom,recharge-thresh-mv = <200>;
 			qcom,fg-cutoff-voltage-mv = <3500>;
 			qcom,fg-voltage-empty-mv = <3000>;
+			qcom,fg-auto-recharge-soc = <97>;
 			qcom,iterm-ma = <50>;
-			htc,batt-full-criteria = <200>;
+			htc,batt-full-criteria = <350>;
 			htc,batt-eoc-criteria = <50>;
 			qcom,thermal-mitigation = <1500 700 600 0>;
 			qcom,otg-batt-curr-limit = <1500>;

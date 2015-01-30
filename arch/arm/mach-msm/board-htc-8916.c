@@ -65,7 +65,10 @@
 
 extern int __init htc_8939_dsi_panel_power_register(void);
 
+#define HTC_8939_A51_UL_PROJECT_ID 342
+#define HTC_8939_A51_DUGL_PROJECT_ID 343
 #define HTC_8939_A51_DTUL_PROJECT_ID 344
+#define HTC_8939_A51_DTGL_PROJECT_ID 345
 #define HTC_8939_USB1_HS_ID_GPIO 110 + 902
 
 static int htc_get_usbid(void)
@@ -181,8 +184,14 @@ static void msm8916_add_usb_devices(void)
 		android_usb_pdata.fserial_init_string = "tty,tty:autobot,tty:serial,tty:autobot,tty:acm";
 	}
 
+	if (project_id == HTC_8939_A51_UL_PROJECT_ID)
+		android_usb_pdata.product_id = 0x658;
+	else if (project_id == HTC_8939_A51_DUGL_PROJECT_ID)
+		android_usb_pdata.product_id = 0x657;
 	else if (project_id == HTC_8939_A51_DTUL_PROJECT_ID)
 		android_usb_pdata.product_id = 0x64d;
+	else if (project_id == HTC_8939_A51_DTGL_PROJECT_ID)
+		android_usb_pdata.product_id = 0x656;
 
 	platform_device_register(&android_usb_device);
 }

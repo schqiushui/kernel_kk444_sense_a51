@@ -40,7 +40,7 @@
 		qcom,mdss-vbif-qos-nrt-setting = <1 1 1 1>;
 		qcom,max-mixer-width = <2560>;
 		qcom,mdss-mdp-reg-offset = <0x00001000>;
-		qcom,max-clk-rate = <320000000>;
+		qcom,max-clk-rate = <366670000>;
 		qcom,mdss-pipe-vig-off = <0x00005000>;
 		qcom,mdss-pipe-rgb-off = <0x00015000 0x00017000>;
 		qcom,mdss-pipe-dma-off = <0x00025000>;
@@ -108,7 +108,6 @@
 			cell-index = <0>;
 			compatible = "qcom,mdss-fb";
 			htc,fbmem-heap-remapping;
-			qcom,memblock-reserve = <0x83200000 0xfa0000>;
 		};
 
 		mdss_fb1: qcom,mdss_fb_wfd {

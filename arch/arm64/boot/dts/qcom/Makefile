@@ -61,8 +61,50 @@ dtb-$(CONFIG_ARCH_MSM8916) += msm8916-sim.dtb \
 	msm8936-mtp-smb1360.dtb \
 	msm8936-mtp-wcd9306.dtb
 
+ifeq ($(CONFIG_MACH_A11_UL), y)
+	dtb-$(CONFIG_ARCH_MSM8916)  += msm8916-a11ul.dtb
+endif
+
+ifeq ($(CONFIG_MACH_A21_DCGL), y)
+	dtb-$(CONFIG_ARCH_MSM8916)  += msm8916-a21dcgl.dtb
+endif
+
+ifeq ($(CONFIG_MACH_A21_UL), y)
+	dtb-$(CONFIG_ARCH_MSM8916)  += msm8916-a21ul.dtb
+endif
+
+ifeq ($(CONFIG_MACH_A21_DUGL), y)
+	dtb-$(CONFIG_ARCH_MSM8916)  += msm8916-a21dugl.dtb
+endif
+
+ifeq ($(CONFIG_MACH_A21_DTGL), y)
+	dtb-$(CONFIG_ARCH_MSM8916)  += msm8916-a21dtgl.dtb
+endif
+
+ifeq ($(CONFIG_MACH_A21_DTUL), y)
+	dtb-$(CONFIG_ARCH_MSM8916)  += msm8916-a21dtul.dtb
+endif
+
+ifeq ($(CONFIG_MACH_A31_UL), y)
+	dtb-$(CONFIG_ARCH_MSM8916)  += msm8916-a31ul.dtb
+endif
+
+ifeq ($(CONFIG_MACH_A31_DUGL), y)
+	dtb-$(CONFIG_ARCH_MSM8916)  += msm8916-a31dugl.dtb
+endif
+
+ifeq ($(CONFIG_MACH_A31_DTGL), y)
+	dtb-$(CONFIG_ARCH_MSM8916)  += msm8916-a31dtgl.dtb
+endif
+
+ifeq ($(CONFIG_MACH_A31_DTUL), y)
+	dtb-$(CONFIG_ARCH_MSM8916)  += msm8916-a31dtul.dtb
+endif
+
 ifeq ($(CONFIG_MACH_A51_DTUL), y)
 	dtb-$(CONFIG_ARCH_MSM8916)  += msm8939-a51dtul.dtb
+endif
+
 endif
 
 dtb-$(CONFIG_ARCH_MSM8226) += msm8226-sim.dtb \

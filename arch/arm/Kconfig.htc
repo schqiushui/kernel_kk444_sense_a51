@@ -141,3 +141,9 @@ config HTC_DEBUG_RIL_PCN0006_HTC_DUMP_BAM_DMUX_LOG
 	depends on MSM_BAM_DMUX
 	---help---
 	  Dump BAM DMUX log message
+
+config HTC_FEATURES_RIL_PCN0007_FINAL_EFS_SYNC
+	tristate "HTC_DEBUG_RIL_PCN0007_FINAL_EFS_SYNC"
+	default y
+	---help---
+	  Trigger modem EFS sync when device reboot

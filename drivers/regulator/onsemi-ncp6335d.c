@@ -27,7 +27,6 @@
 #include <linux/regulator/onsemi-ncp6335d.h>
 #include <linux/string.h>
 
-/* registers */
 #define REG_NCP6335D_PID		0x03
 #define REG_NCP6335D_PROGVSEL1		0x10
 #define REG_NCP6335D_PROGVSEL0		0x11
@@ -35,14 +34,12 @@
 #define REG_NCP6335D_TIMING		0x13
 #define REG_NCP6335D_COMMAND		0x14
 
-/* constraints */
 #define NCP6335D_MIN_VOLTAGE_UV		600000
 #define NCP6335D_STEP_VOLTAGE_UV	6250
 #define NCP6335D_VOLTAGE_STEPS		128
 #define NCP6335D_MIN_SLEW_NS		166
 #define NCP6335D_MAX_SLEW_NS		1333
 
-/* bits */
 #define NCP6335D_ENABLE			BIT(7)
 #define NCP6335D_DVS_PWM_MODE		BIT(5)
 #define NCP6335D_PWM_MODE1		BIT(6)
@@ -53,6 +50,9 @@
 #define NCP6335D_VOUT_SEL_MASK		0x7F
 #define NCP6335D_SLEW_MASK		0x18
 #define NCP6335D_SLEW_SHIFT		0x3
+
+#define I2C_ADDR1				0x1C
+#define I2C_ADDR2				0x18
 
 struct ncp6335d_info {
 	struct regulator_dev *regulator;
@@ -74,6 +74,7 @@ struct ncp6335d_info {
 	struct dentry *debug_root;
 };
 
+	
 static void dump_registers(struct ncp6335d_info *dd,
 			unsigned int reg, const char *func)
 {
@@ -97,15 +98,31 @@ static void ncp633d_slew_delay(struct ncp6335d_info *dd,
 	udelay(delay);
 }
 
+static void getAddr(struct i2c_client *client)
+{
+	if (client->addr == I2C_ADDR1)
+		client->addr = I2C_ADDR2;
+	else
+		client->addr = I2C_ADDR1;
+}
+
 static int ncp6335d_enable(struct regulator_dev *rdev)
 {
 	int rc;
 	struct ncp6335d_info *dd = rdev_get_drvdata(rdev);
+	struct i2c_client *client = to_i2c_client(dd->dev);
 
 	rc = regmap_update_bits(dd->regmap, dd->vsel_reg,
 				NCP6335D_ENABLE, NCP6335D_ENABLE);
-	if (rc)
-		dev_err(dd->dev, "Unable to enable regualtor rc(%d)", rc);
+	if (rc) {
+		dev_err(dd->dev, "Unable to enable regualtor rc(%d), try another addr, current: %x\n", rc, client->addr);
+		getAddr(client);
+		rc = regmap_update_bits(dd->regmap, dd->vsel_reg,
+				NCP6335D_ENABLE, NCP6335D_ENABLE);
+		if (rc) {
+			dev_err(dd->dev, "Unable to enable regualtor rc(%d), %x\n", rc, client->addr);
+		}
+	}
 
 	dump_registers(dd, dd->vsel_reg, __func__);
 
@@ -116,11 +133,19 @@ static int ncp6335d_disable(struct regulator_dev *rdev)
 {
 	int rc;
 	struct ncp6335d_info *dd = rdev_get_drvdata(rdev);
+	struct i2c_client *client = to_i2c_client(dd->dev);
 
 	rc = regmap_update_bits(dd->regmap, dd->vsel_reg,
 					NCP6335D_ENABLE, 0);
-	if (rc)
-		dev_err(dd->dev, "Unable to disable regualtor rc(%d)", rc);
+	if (rc) {
+		dev_err(dd->dev, "Unable to disable regualtor rc(%d), %x\n", rc, client->addr);
+		getAddr(client);
+		rc = regmap_update_bits(dd->regmap, dd->vsel_reg,
+					NCP6335D_ENABLE, 0);
+		if (rc) {
+			dev_err(dd->dev, "Unable to disable regualtor rc(%d), %x\n", rc, client->addr);
+		}
+	}
 
 	dump_registers(dd, dd->vsel_reg, __func__);
 
@@ -132,11 +157,17 @@ static int ncp6335d_get_voltage(struct regulator_dev *rdev)
 	unsigned int val;
 	int rc;
 	struct ncp6335d_info *dd = rdev_get_drvdata(rdev);
+	struct i2c_client *client = to_i2c_client(dd->dev);
 
 	rc = regmap_read(dd->regmap, dd->vsel_reg, &val);
 	if (rc) {
-		dev_err(dd->dev, "Unable to get volatge rc(%d)", rc);
-		return rc;
+		dev_err(dd->dev, "Unable to get volatge rc(%d), %x\n", rc, client->addr);
+		getAddr(client);
+		rc = regmap_read(dd->regmap, dd->vsel_reg, &val);
+		if (rc) {
+			dev_err(dd->dev, "Unable to get voltage rc(%d), %x\n", rc, client->addr);
+			return rc;
+		}
 	}
 	dd->curr_voltage = ((val & NCP6335D_VOUT_SEL_MASK) * dd->step_size) +
 				dd->min_voltage;
@@ -151,6 +182,7 @@ static int ncp6335d_set_voltage(struct regulator_dev *rdev,
 {
 	int rc, set_val, new_uV;
 	struct ncp6335d_info *dd = rdev_get_drvdata(rdev);
+	struct i2c_client *client = to_i2c_client(dd->dev);
 
 	set_val = DIV_ROUND_UP(min_uV - dd->min_voltage, dd->step_size);
 	new_uV = (set_val * dd->step_size) + dd->min_voltage;
@@ -163,9 +195,17 @@ static int ncp6335d_set_voltage(struct regulator_dev *rdev,
 	rc = regmap_update_bits(dd->regmap, dd->vsel_reg,
 		NCP6335D_VOUT_SEL_MASK, (set_val & NCP6335D_VOUT_SEL_MASK));
 	if (rc) {
-		dev_err(dd->dev, "Unable to set volatge (%d %d)\n",
-							min_uV, max_uV);
-	} else {
+		dev_err(dd->dev, "Unable to set volatge (%d %d), %x\n",
+							min_uV, max_uV, client->addr);
+		getAddr(client);
+		rc = regmap_update_bits(dd->regmap, dd->vsel_reg,
+			NCP6335D_VOUT_SEL_MASK, (set_val & NCP6335D_VOUT_SEL_MASK));
+		if (rc)
+			dev_err(dd->dev, "Unable to set volatge1 (%d %d), %x\n",
+							min_uV, max_uV, client->addr);
+	}
+
+	if (!rc) {
 		ncp633d_slew_delay(dd, dd->curr_voltage, new_uV);
 		dd->curr_voltage = new_uV;
 	}
@@ -191,8 +231,9 @@ static int ncp6335d_set_mode(struct regulator_dev *rdev,
 {
 	int rc;
 	struct ncp6335d_info *dd = rdev_get_drvdata(rdev);
+	struct i2c_client *client = to_i2c_client(dd->dev);
 
-	/* only FAST and NORMAL mode types are supported */
+	
 	if (mode != REGULATOR_MODE_FAST && mode != REGULATOR_MODE_NORMAL) {
 		dev_err(dd->dev, "Mode %d not supported\n", mode);
 		return -EINVAL;
@@ -201,7 +242,12 @@ static int ncp6335d_set_mode(struct regulator_dev *rdev,
 	rc = regmap_update_bits(dd->regmap, REG_NCP6335D_COMMAND, dd->mode_bit,
 			(mode == REGULATOR_MODE_FAST) ? dd->mode_bit : 0);
 	if (rc) {
-		dev_err(dd->dev, "Unable to set operating mode rc(%d)", rc);
+		dev_err(dd->dev, "Unable to set operating mode rc(%d), %x", rc, client->addr);
+		getAddr(client);
+		rc = regmap_update_bits(dd->regmap, REG_NCP6335D_COMMAND, dd->mode_bit,
+			(mode == REGULATOR_MODE_FAST) ? dd->mode_bit : 0);
+		if (rc)
+			dev_err(dd->dev, "Unable to set operating mode rc1(%d), %x", rc, client->addr);
 		return rc;
 	}
 
@@ -209,8 +255,16 @@ static int ncp6335d_set_mode(struct regulator_dev *rdev,
 					NCP6335D_DVS_PWM_MODE,
 					(mode == REGULATOR_MODE_FAST) ?
 					NCP6335D_DVS_PWM_MODE : 0);
-	if (rc)
-		dev_err(dd->dev, "Unable to set DVS trans. mode rc(%d)", rc);
+	if (rc) {
+		dev_err(dd->dev, "Unable to set DVS trans. mode rc(%d), %x", rc, client->addr);
+		getAddr(client);
+		rc = regmap_update_bits(dd->regmap, REG_NCP6335D_COMMAND,
+					NCP6335D_DVS_PWM_MODE,
+					(mode == REGULATOR_MODE_FAST) ?
+					NCP6335D_DVS_PWM_MODE : 0);
+		if (rc)
+			dev_err(dd->dev, "Unable to set DVS trans. mode rc1(%d), %x", rc, client->addr);
+	}
 
 	dump_registers(dd, REG_NCP6335D_COMMAND, __func__);
 
@@ -222,11 +276,17 @@ static unsigned int ncp6335d_get_mode(struct regulator_dev *rdev)
 	unsigned int val;
 	int rc;
 	struct ncp6335d_info *dd = rdev_get_drvdata(rdev);
+	struct i2c_client *client = to_i2c_client(dd->dev);
 
 	rc = regmap_read(dd->regmap, REG_NCP6335D_COMMAND, &val);
 	if (rc) {
-		dev_err(dd->dev, "Unable to get regulator mode rc(%d)\n", rc);
-		return rc;
+		dev_err(dd->dev, "Unable to get regulator mode rc(%d), %x\n", rc, client->addr);
+		getAddr(client);
+		rc = regmap_read(dd->regmap, REG_NCP6335D_COMMAND, &val);
+		if (rc) {
+			dev_err(dd->dev, "Unable to get regulator mode rc1(%d), %x\n", rc, client->addr);
+			return rc;
+		}
 	}
 
 	dump_registers(dd, REG_NCP6335D_COMMAND, __func__);
@@ -259,21 +319,35 @@ static int ncp6335d_restore_working_reg(struct device_node *node,
 {
 	int ret;
 	unsigned int val;
+	struct i2c_client *client = to_i2c_client(dd->dev);
 
-	/* Restore register from back up register */
+	
 	ret = regmap_read(dd->regmap, dd->vsel_backup_reg, &val);
 	if (ret < 0) {
-		dev_err(dd->dev, "Failed to get backup data from reg %d, ret = %d\n",
-			dd->vsel_backup_reg, ret);
-		return ret;
+		dev_err(dd->dev, "Failed to get backup data from reg %d, ret = %d, %x\n",
+			dd->vsel_backup_reg, ret, client->addr);
+		getAddr(client);
+		ret = regmap_read(dd->regmap, dd->vsel_backup_reg, &val);
+		if (ret < 0) {
+			dev_err(dd->dev, "Failed to get backup data from reg1 %d, ret = %d, %x\n",
+				dd->vsel_backup_reg, ret, client->addr);
+			return ret;
+		}
 	}
 
 	ret = regmap_update_bits(dd->regmap, dd->vsel_reg,
 					NCP6335D_VOUT_SEL_MASK, val);
 	if (ret < 0) {
-		dev_err(dd->dev, "Failed to update working reg %d, ret = %d\n",
-			dd->vsel_reg,  ret);
-		return ret;
+		dev_err(dd->dev, "Failed to update working reg %d, ret = %d, %x\n",
+			dd->vsel_reg,  ret, client->addr);
+		getAddr(client);
+		ret = regmap_update_bits(dd->regmap, dd->vsel_reg,
+					NCP6335D_VOUT_SEL_MASK, val);
+		if (ret < 0) {
+			dev_err(dd->dev, "Failed to update working reg1 %d, ret = %d, %x\n",
+				dd->vsel_reg,  ret, client->addr);
+			return ret;
+		}
 	}
 
 	return ret;
@@ -288,7 +362,7 @@ static int ncp6335d_parse_gpio(struct device_node *node,
 	if (!of_find_property(node, "onnn,vsel-gpio", NULL))
 		return ret;
 
-	/* Get GPIO connected to vsel and set its output */
+	
 	gpio = of_get_named_gpio_flags(node,
 			"onnn,vsel-gpio", 0, &flags);
 	if (!gpio_is_valid(gpio)) {
@@ -348,26 +422,39 @@ static int ncp6335d_init(struct i2c_client *client, struct ncp6335d_info *dd,
 	if (rc)
 		return rc;
 
-	/* get the current programmed voltage */
+	
 	rc = regmap_read(dd->regmap, dd->vsel_reg, &val);
 	if (rc) {
-		dev_err(dd->dev, "Unable to get volatge rc(%d)", rc);
-		return rc;
+		dev_err(dd->dev, "Unable to get volatge rc(%d), %x", rc, client->addr);
+		getAddr(client);
+		rc = regmap_read(dd->regmap, dd->vsel_reg, &val);
+		if (rc) {
+			dev_err(dd->dev, "Unable to get volatge rc1(%d), %x", rc, client->addr);
+			return rc;
+		}
 	}
 	dd->curr_voltage = ((val & NCP6335D_VOUT_SEL_MASK) *
 				dd->step_size) + dd->min_voltage;
 
-	/* set discharge */
+	
 	rc = regmap_update_bits(dd->regmap, REG_NCP6335D_PGOOD,
 					NCP6335D_PGOOD_DISCHG,
 					(pdata->discharge_enable ?
 					NCP6335D_PGOOD_DISCHG : 0));
 	if (rc) {
-		dev_err(dd->dev, "Unable to set Active Discharge rc(%d)\n", rc);
-		return -EINVAL;
+		dev_err(dd->dev, "Unable to set Active Discharge rc(%d), %x\n", rc, client->addr);
+		getAddr(client);
+		rc = regmap_update_bits(dd->regmap, REG_NCP6335D_PGOOD,
+					NCP6335D_PGOOD_DISCHG,
+					(pdata->discharge_enable ?
+					NCP6335D_PGOOD_DISCHG : 0));
+		if (rc) {
+			dev_err(dd->dev, "Unable to set Active Discharge rc1(%d), %x\n", rc, client->addr);
+			return -EINVAL;
+		}
 	}
 
-	/* set slew rate */
+	
 	if (pdata->slew_rate_ns < dd->min_slew_ns ||
 			pdata->slew_rate_ns > dd->max_slew_ns) {
 		dev_err(dd->dev, "Invalid slew rate %d\n", pdata->slew_rate_ns);
@@ -380,15 +467,28 @@ static int ncp6335d_init(struct i2c_client *client, struct ncp6335d_info *dd,
 
 	rc = regmap_update_bits(dd->regmap, REG_NCP6335D_TIMING,
 			NCP6335D_SLEW_MASK, val << NCP6335D_SLEW_SHIFT);
-	if (rc)
-		dev_err(dd->dev, "Unable to set slew rate rc(%d)\n", rc);
+	if (rc) {
+		dev_err(dd->dev, "Unable to set slew rate rc(%d), %x\n", rc, client->addr);
+		getAddr(client);
+		rc = regmap_update_bits(dd->regmap, REG_NCP6335D_TIMING,
+			NCP6335D_SLEW_MASK, val << NCP6335D_SLEW_SHIFT);
+		if (rc)
+			dev_err(dd->dev, "Unable to set slew rate rc1(%d), %x\n", rc, client->addr);
+	}
 
-	/* Set Sleep mode bit */
+	
 	rc = regmap_update_bits(dd->regmap, REG_NCP6335D_COMMAND,
 				NCP6335D_SLEEP_MODE, pdata->sleep_enable ?
 						NCP6335D_SLEEP_MODE : 0);
-	if (rc)
-		dev_err(dd->dev, "Unable to set sleep mode (%d)\n", rc);
+	if (rc) {
+		dev_err(dd->dev, "Unable to set sleep mode (%d), %x\n", rc, client->addr);
+		getAddr(client);
+		rc = regmap_update_bits(dd->regmap, REG_NCP6335D_COMMAND,
+				NCP6335D_SLEEP_MODE, pdata->sleep_enable ?
+						NCP6335D_SLEEP_MODE : 0);
+		if (rc)
+			dev_err(dd->dev, "Unable to set sleep mode (%d), %x\n", rc, client->addr);
+	}
 
 	dump_registers(dd, REG_NCP6335D_COMMAND, __func__);
 	dump_registers(dd, REG_NCP6335D_PROGVSEL0, __func__);
@@ -518,12 +618,18 @@ static int get_reg(void *data, u64 *val)
 	struct ncp6335d_info *dd = data;
 	int rc;
 	unsigned int temp = 0;
+	struct i2c_client *client = to_i2c_client(dd->dev);
 
 	rc = regmap_read(dd->regmap, dd->peek_poke_address, &temp);
-	if (rc < 0)
-		dev_err(dd->dev, "Couldn't read reg %x rc = %d\n",
-				dd->peek_poke_address, rc);
-	else
+	if (rc < 0) {
+		dev_err(dd->dev, "Couldn't read reg %x rc = %d, %x\n",
+				dd->peek_poke_address, rc, client->addr);
+		getAddr(client);
+		rc = regmap_read(dd->regmap, dd->peek_poke_address, &temp);
+		if (rc < 0)
+			dev_err(dd->dev, "Couldn't read reg1 %x rc = %d, %x\n",
+				dd->peek_poke_address, rc, client->addr);
+	} else
 		*val = temp;
 
 	return rc;
@@ -534,12 +640,19 @@ static int set_reg(void *data, u64 val)
 	struct ncp6335d_info *dd = data;
 	int rc;
 	unsigned int temp = 0;
+	struct i2c_client *client = to_i2c_client(dd->dev);
 
 	temp = (unsigned int) val;
 	rc = regmap_write(dd->regmap, dd->peek_poke_address, temp);
-	if (rc < 0)
-		dev_err(dd->dev, "Couldn't write 0x%02x to 0x%02x rc= %d\n",
-			dd->peek_poke_address, temp, rc);
+	if (rc < 0) {
+		dev_err(dd->dev, "Couldn't write 0x%02x to 0x%02x rc= %d, %x\n",
+			dd->peek_poke_address, temp, rc, client->addr);
+		getAddr(client);
+		rc = regmap_write(dd->regmap, dd->peek_poke_address, temp);
+		if (rc < 0)
+			dev_err(dd->dev, "Couldn't write 0x%02x to 0x%02x rc1= %d, %x\n",
+				dd->peek_poke_address, temp, rc, client->addr);
+	}
 
 	return rc;
 }
@@ -587,13 +700,20 @@ static int ncp6335d_regulator_probe(struct i2c_client *client,
 		return PTR_ERR(dd->regmap);
 	}
 
+	client->addr = I2C_ADDR2;
 	rc = regmap_read(dd->regmap, REG_NCP6335D_PID, &val);
 	if (rc) {
-		dev_err(&client->dev, "Unable to identify NCP6335D, rc(%d)\n",
-									rc);
-		return rc;
+		dev_err(&client->dev, "Unable to identify NCP6335D, rc(%d), %x\n",
+									rc, client->addr);
+		getAddr(client);
+		rc = regmap_read(dd->regmap, REG_NCP6335D_PID, &val);
+		if (rc) {
+			dev_err(&client->dev, "Unable to identify NCP6335D, rc1(%d), %x\n",
+									rc, client->addr);
+			return rc;
+		}
 	}
-	dev_info(&client->dev, "Detected Regulator NCP6335D PID = %d\n", val);
+	dev_info(&client->dev, "Detected Regulator NCP6335D PID = %d (client addr = %x)\n", val, client->addr);
 
 	dd->init_data = pdata->init_data;
 	dd->dev = &client->dev;
@@ -678,12 +798,6 @@ static struct i2c_driver ncp6335d_regulator_driver = {
 	.id_table = ncp6335d_id,
 };
 
-/**
- * ncp6335d_regulator_init() - initialized ncp6335d regulator driver
- * This function registers the ncp6335d regulator platform driver.
- *
- * Returns 0 on success or errno on failure.
- */
 int __init ncp6335d_regulator_init(void)
 {
 	static bool initialized;
