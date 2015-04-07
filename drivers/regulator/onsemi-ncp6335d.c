@@ -64,6 +64,7 @@ struct ncp6335d_info {
 	unsigned int mode_bit;
 	int curr_voltage;
 	int slew_rate;
+	bool is_suspend;
 
 	unsigned int step_size;
 	unsigned int min_voltage;
@@ -72,6 +73,7 @@ struct ncp6335d_info {
 	unsigned int peek_poke_address;
 
 	struct dentry *debug_root;
+	struct mutex ncp_mutex;
 };
 
 	
@@ -159,6 +161,13 @@ static int ncp6335d_get_voltage(struct regulator_dev *rdev)
 	struct ncp6335d_info *dd = rdev_get_drvdata(rdev);
 	struct i2c_client *client = to_i2c_client(dd->dev);
 
+	mutex_lock(&dd->ncp_mutex);
+	if (dd->is_suspend) {
+		rc = dd->curr_voltage;
+		dev_dbg(dd->dev, "Get voltage after suspend, (%d)\n", rc);
+		goto out;
+	}
+
 	rc = regmap_read(dd->regmap, dd->vsel_reg, &val);
 	if (rc) {
 		dev_err(dd->dev, "Unable to get volatge rc(%d), %x\n", rc, client->addr);
@@ -166,21 +175,25 @@ static int ncp6335d_get_voltage(struct regulator_dev *rdev)
 		rc = regmap_read(dd->regmap, dd->vsel_reg, &val);
 		if (rc) {
 			dev_err(dd->dev, "Unable to get voltage rc(%d), %x\n", rc, client->addr);
-			return rc;
+			goto out;
 		}
 	}
 	dd->curr_voltage = ((val & NCP6335D_VOUT_SEL_MASK) * dd->step_size) +
 				dd->min_voltage;
 
+	rc = dd->curr_voltage;
+
 	dump_registers(dd, dd->vsel_reg, __func__);
 
-	return dd->curr_voltage;
+out:
+	mutex_unlock(&dd->ncp_mutex);
+	return rc;
 }
 
 static int ncp6335d_set_voltage(struct regulator_dev *rdev,
 			int min_uV, int max_uV, unsigned *selector)
 {
-	int rc, set_val, new_uV;
+	int rc = 0, set_val, new_uV;
 	struct ncp6335d_info *dd = rdev_get_drvdata(rdev);
 	struct i2c_client *client = to_i2c_client(dd->dev);
 
@@ -190,6 +203,13 @@ static int ncp6335d_set_voltage(struct regulator_dev *rdev,
 		dev_err(dd->dev, "Unable to set volatge (%d %d)\n",
 							min_uV, max_uV);
 		return -EINVAL;
+	}
+
+	mutex_lock(&dd->ncp_mutex);
+	if (dd->is_suspend) {
+		dev_info(dd->dev, "Ignore voltage setting after suspend: %d\n",
+					new_uV);
+		goto out;
 	}
 
 	rc = regmap_update_bits(dd->regmap, dd->vsel_reg,
@@ -211,7 +231,8 @@ static int ncp6335d_set_voltage(struct regulator_dev *rdev,
 	}
 
 	dump_registers(dd, dd->vsel_reg, __func__);
-
+out:
+	mutex_unlock(&dd->ncp_mutex);
 	return rc;
 }
 
@@ -718,6 +739,7 @@ static int ncp6335d_regulator_probe(struct i2c_client *client,
 	dd->init_data = pdata->init_data;
 	dd->dev = &client->dev;
 	i2c_set_clientdata(client, dd);
+	mutex_init(&dd->ncp_mutex);
 
 	rc = ncp6335d_init(client, dd, pdata);
 	if (rc) {
@@ -776,6 +798,35 @@ static int ncp6335d_regulator_remove(struct i2c_client *client)
 	return 0;
 }
 
+static int ncp6335d_suspend_noirq(struct device *dev)
+{
+	struct i2c_client *client = to_i2c_client(dev);
+	struct ncp6335d_info *dd = i2c_get_clientdata(client);
+
+	mutex_lock(&dd->ncp_mutex);
+	dd->is_suspend = true;
+	mutex_unlock(&dd->ncp_mutex);
+
+	return 0;
+}
+
+static int ncp6335d_resume(struct device *dev)
+{
+	struct i2c_client *client = to_i2c_client(dev);
+	struct ncp6335d_info *dd = i2c_get_clientdata(client);
+
+	mutex_lock(&dd->ncp_mutex);
+	dd->is_suspend = false;
+	mutex_unlock(&dd->ncp_mutex);
+
+	return 0;
+}
+
+static const struct dev_pm_ops ncp6335d_pm_ops = {
+	.suspend_noirq = ncp6335d_suspend_noirq,
+	.resume = ncp6335d_resume,
+};
+
 static struct of_device_id ncp6335d_match_table[] = {
 	{ .compatible = "onnn,ncp6335d-regulator", },
 	{},
@@ -792,6 +843,7 @@ static struct i2c_driver ncp6335d_regulator_driver = {
 		.name = "ncp6335d-regulator",
 		.owner = THIS_MODULE,
 		.of_match_table = ncp6335d_match_table,
+		.pm = &ncp6335d_pm_ops,
 	},
 	.probe = ncp6335d_regulator_probe,
 	.remove = ncp6335d_regulator_remove,

@@ -2491,7 +2491,8 @@ static void msm_otg_init_sm(struct msm_otg *motg)
 				else
 					clear_bit(ID, &motg->inputs);
 			} else if (motg->ext_id_irq) {
-				if (gpio_get_value(pdata->usb_id_gpio))
+				
+				if (cable_get_accessory_type() != DOCK_STATE_USB_HOST)
 					set_bit(ID, &motg->inputs);
 				else
 					clear_bit(ID, &motg->inputs);

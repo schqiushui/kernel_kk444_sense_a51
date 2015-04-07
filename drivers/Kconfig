@@ -188,4 +188,6 @@ source "drivers/soc/Kconfig"
 
 source "drivers/htc_debug/stability/Kconfig"
 
++source "drivers/htc_ril/Kconfig"
+
 endmenu

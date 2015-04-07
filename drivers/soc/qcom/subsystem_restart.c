@@ -72,6 +72,77 @@ static const char * const enable_ramdumps[] = {
 };
 #endif
 
+#if defined(CONFIG_HTC_DEBUG_SSR)
+
+#define SUBSYS_NAME_MAX_LENGTH 40
+#define RD_BUF_SIZE			  256
+#define MODEM_ERRMSG_LIST_LEN 10
+
+struct msm_msr_info {
+	int valid;
+	struct timespec msr_time;
+	char modem_errmsg[RD_BUF_SIZE];
+};
+int msm_msr_index = 0;
+static struct msm_msr_info msr_info_list[MODEM_ERRMSG_LIST_LEN];
+
+static ssize_t subsystem_restart_reason_nonblock_show(struct kobject *kobj,
+		struct kobj_attribute *attr, char *buf)
+{
+
+	int i = 0;
+	char tmp[RD_BUF_SIZE+30];
+
+	for( i=0; i<MODEM_ERRMSG_LIST_LEN; i++ ) {
+		if( msr_info_list[i].valid != 0 ) {
+			
+			snprintf(tmp, RD_BUF_SIZE+30, "%ld-%s|\n\r", msr_info_list[i].msr_time.tv_sec, msr_info_list[i].modem_errmsg);
+			strcat(buf, tmp);
+			memset(tmp, 0, RD_BUF_SIZE+30);
+		}
+		msr_info_list[i].valid = 0;
+		memset(msr_info_list[i].modem_errmsg, 0, RD_BUF_SIZE);
+	}
+	strcat(buf, "\n\r\0");
+
+	return strlen(buf);
+}
+
+void subsystem_restart_reason_nonblock_init(void)
+{
+	int i = 0;
+	msm_msr_index = 0;
+	for( i=0; i<MODEM_ERRMSG_LIST_LEN; i++ ) {
+		msr_info_list[i].valid = 0;
+		memset(msr_info_list[i].modem_errmsg, 0, RD_BUF_SIZE);
+	}
+}
+
+#define subsystem_restart_ro_attr(_name) \
+	static struct kobj_attribute _name##_attr = {  \
+		.attr   = {                             \
+			.name = __stringify(_name),     \
+			.mode = 0444,                   \
+		},                                      \
+		.show   = _name##_show,                 \
+		.store  = NULL,         \
+	}
+
+
+subsystem_restart_ro_attr(subsystem_restart_reason_nonblock);
+
+
+static struct attribute *g[] = {
+	&subsystem_restart_reason_nonblock_attr.attr,
+	NULL,
+};
+
+static struct attribute_group attr_group = {
+	.attrs = g,
+};
+
+#endif
+
 struct subsys_tracking {
 	enum p_subsys_state p_state;
 	spinlock_t s_lock;
@@ -766,6 +837,19 @@ static void __subsystem_restart_dev(struct subsys_device *dev)
 	const char *name = dev->desc->name;
 	struct subsys_tracking *track;
 	unsigned long flags;
+
+#if defined(CONFIG_HTC_DEBUG_SSR)
+	
+	if (!strncmp(name, "modem",
+			SUBSYS_NAME_MAX_LENGTH)) {
+		msr_info_list[msm_msr_index].valid = 1;
+		msr_info_list[msm_msr_index].msr_time = current_kernel_time();
+		snprintf(msr_info_list[msm_msr_index].modem_errmsg, RD_BUF_SIZE, "%s", dev->restart_reason);
+		if(++msm_msr_index >= MODEM_ERRMSG_LIST_LEN)
+			msm_msr_index = 0;
+	}
+	
+#endif
 
 #if defined(CONFIG_HTC_FEATURES_SSR)
 	pr_info("Restarting %s [level=%s]!\n", desc->name, restart_levels[dev->restart_level]);
@@ -1462,7 +1546,20 @@ static struct notifier_block panic_nb = {
 static int __init subsys_restart_init(void)
 {
 	int ret;
-
+#if defined(CONFIG_HTC_DEBUG_SSR)
+	struct kobject *properties_kobj;
+	
+	subsystem_restart_reason_nonblock_init();
+	properties_kobj = kobject_create_and_add("subsystem_restart_properties", NULL);
+	if (properties_kobj) {
+		ret = sysfs_create_group(properties_kobj, &attr_group);
+		if (ret) {
+			pr_err("subsys_restart_init: sysfs_create_group failed\n");
+			return ret;
+		}
+	}
+	
+#endif
 	ssr_wq = alloc_workqueue("ssr_wq", WQ_CPU_INTENSIVE, 0);
 	BUG_ON(!ssr_wq);
 

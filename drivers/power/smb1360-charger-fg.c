@@ -525,6 +525,9 @@ static void htc_reset_safety_timer(struct smb1360_chip *chip)
 {
 	int rc = 0;
 
+	if (flag_keep_charge_on || flag_pa_recharge)
+		return;
+
 	
 	rc = smb1360_masked_write(chip, CFG_SFY_TIMER_CTRL_REG,
 				SAFETY_TIME_EN_MASK, SAFETY_TIME_DIS_BIT);
@@ -1105,13 +1108,14 @@ static int smb1360_chg_is_taper(struct smb1360_chip *chip)
 
 #define CONSECUTIVE_COUNT	3
 #define CONSECUTIVE_COUNT_BY_CURRENT_FOR_RESET_CHGR	360
+#define CLEAR_FULL_STATE_BY_LEVEL_THR	90
 static void
 smb1360_eoc_work(struct work_struct *work)
 {
 	struct delayed_work *dwork = to_delayed_work(work);
 	struct smb1360_chip *chip = container_of(dwork,
 				struct smb1360_chip, eoc_work);
-	int ibat_ma, vbat_mv;
+	int ibat_ma, vbat_mv, soc = 0;
 	u8 chg_state = 0;
 	int rc = 0;
 
@@ -1186,6 +1190,25 @@ smb1360_eoc_work(struct work_struct *work)
 				rc = smb1360_charging_disable(chip, USER, false);
 				if (rc < 0)
 					pr_err("Unable to enable charging rc=%d\n", rc);
+			}
+		}
+
+		if (is_batt_full) {
+			smb1360_get_batt_soc(&soc);
+			if (soc < CLEAR_FULL_STATE_BY_LEVEL_THR) {
+				
+				if (vbat_mv > (chip->vfloat_mv - 100)) {
+					pr_info("Not satisfy overloading battery voltage"
+						" critiria (%dmV < %dmV).\n", vbat_mv,
+						(chip->vfloat_mv - 100));
+				} else {
+					is_batt_full = false;
+					eoc_count = eoc_count_by_curr = 0;
+					pr_info("%s: Clear is_batt_full & eoc_count due to"
+						" Overloading happened, soc=%d\n",
+						__func__, soc);
+					htc_gauge_event_notify(HTC_GAUGE_EVENT_EOC);
+				}
 			}
 		}
 
@@ -4458,7 +4481,7 @@ static int smb1360_hw_init(struct smb1360_chip *chip)
 
 	
 	
-	if (flag_keep_charge_on || flag_pa_recharge || flag_enable_fast_charge) {
+	if (flag_keep_charge_on || flag_pa_recharge) {
 		
 		rc = smb1360_masked_write(chip, CFG_SFY_TIMER_CTRL_REG,
 					SAFETY_TIME_EN_MASK, SAFETY_TIME_DIS_BIT);

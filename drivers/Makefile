@@ -171,3 +171,5 @@ obj-$(CONFIG_SENSORS_SSC)	+= sensors/
 
 #HTC Debug
 obj-$(CONFIG_HTC_DEBUG)		+= htc_debug/stability/
+
+obj-y	+= htc_ril/

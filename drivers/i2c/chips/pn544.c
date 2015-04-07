@@ -1,3 +1,4 @@
+#define FTM_MODE 1
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/fs.h>
@@ -20,7 +21,6 @@
 #include <linux/pn544.h>
 #include <linux/types.h>
 
-#define FTM_MODE 1
 #if FTM_MODE
 #include "pn544_mfg.h"
 int mfc_nfc_cmd_result = 0;
@@ -591,7 +591,7 @@ static ssize_t nxp_chip_alive_show(struct device *dev,
 	return ret;
 }
 
-static DEVICE_ATTR(nxp_chip_alive, 0664, nxp_chip_alive_show, NULL);
+static DEVICE_ATTR(nxp_chip_alive, 0444, nxp_chip_alive_show, NULL);
 
 static ssize_t nxp_uicc_swp_show(struct device *dev,
 			struct device_attribute *attr, char *buf)
@@ -996,6 +996,12 @@ int nci_Reader(control_msg_pack *script, unsigned int scriptSize) {
 
 #define CHECK_READER(void) \
 do { \
+	if (watchdogEn == 1) {\
+		if (watchdog_counter++ > ((2000 / NFC_READ_DELAY) * watchdog_timeout)) {\
+			I("watchdog timeout, command fail.\r\n");\
+			goto TIMEOUT_FAIL; \
+		} \
+	} \
 	if (gpio_get_value(pni->irq_gpio)) { \
 		reader_resp = nci_Reader(&script[scriptIndex], scriptSize); \
 		 \
@@ -1041,7 +1047,7 @@ int script_processor(control_msg_pack *script, unsigned int scriptSize) {
 			mdelay(NFC_READ_DELAY);
 
 			if (watchdogEn == 1)
-				if (watchdog_counter++ > ((1000 / NFC_READ_DELAY) * watchdog_timeout)) {
+				if (watchdog_counter++ > ((2000 / NFC_READ_DELAY) * watchdog_timeout)) {
 					I("watchdog timeout, command fail.\r\n");
 					goto TIMEOUT_FAIL;
 				}
@@ -1056,6 +1062,7 @@ int script_processor(control_msg_pack *script, unsigned int scriptSize) {
 			if (ret < 0) {
 				E("%s, i2c Tx error!\n", __func__);
 				nfc_nci_dump_data(&script[scriptIndex].cmd[1], (int)script[scriptIndex].cmd[0]);
+				goto I2C_FAIL;
 				break;
 			}
 			else {
@@ -1070,7 +1077,7 @@ int script_processor(control_msg_pack *script, unsigned int scriptSize) {
 			CHECK_READER();
 
 			if (watchdogEn == 1)
-				if (watchdog_counter++ > ((1000 / NFC_READ_DELAY) * watchdog_timeout)) {
+				if (watchdog_counter++ > ((2000 / NFC_READ_DELAY) * watchdog_timeout)) {
 					I("watchdog timeout, command fail.\r\n");
 					goto TIMEOUT_FAIL;
 				}
@@ -1083,6 +1090,7 @@ int script_processor(control_msg_pack *script, unsigned int scriptSize) {
 I2C_FAIL:
 	E("%s, I2C_FAIL!\n", __func__);
 	mfc_nfc_cmd_result = -2;
+	return 1;
 TIMEOUT_FAIL:
 	mfc_nfc_cmd_result = 0;
 	return 1;
@@ -1106,30 +1114,29 @@ static int mfg_nfc_test(int code)
 	gDevice_info.intf_set = 2;
 	gDevice_info.target_rf_id = 255;
 	mfc_nfc_cmd_result = -1;
+	watchdog_counter = 0;
+	watchdogEn = 1;
 	I("%s: store value = %d\n", __func__, code);
 
 	switch (code) {
-	case 0:
+	case 0: 
 		I("%s: get nfcversion :\n", __func__);
 		pn544_hw_reset();
-		watchdog_counter = 0;
 		if (script_processor(nfc_version_script, sizeof(nfc_version_script)) == 0) {
 			I("%s: store value = %d\n", __func__, code);
 		}
 		break;
-	case 1:
+	case 1: 
 		I("%s: nfcreader test :\n", __func__);
 		pn544_hw_reset();
-		watchdog_counter = 0;
 		if (script_processor(nfc_reader_script, sizeof(nfc_reader_script)) == 0) {
 			I("%s: store value = %d\n", __func__, code);
 			mfc_nfc_cmd_result = 1;
 		}
 		break;
-	case 2:
+	case 2: 
 		I("%s: nfccard test :\n", __func__);
 		pn544_hw_reset();
-		watchdog_counter = 0;
 		if (script_processor(nfc_card_script, sizeof(nfc_card_script)) == 0) {
 			I("%s: store value = %d\n", __func__, code);
 			mfc_nfc_cmd_result = 1;
@@ -1153,7 +1160,6 @@ static ssize_t mfg_nfc_ctrl_store(struct device *dev,
 	int ret;
 	int code = -1;
 	sscanf(buf, "%d", &code);
-	watchdogEn = 1;
 	ret = mfg_nfc_test(code);
 	return count;
 }
@@ -1185,7 +1191,6 @@ static ssize_t mfg_nfcversion(struct device *dev,
 			struct device_attribute *attr, char *buf)
 {
 	int ret;
-	watchdogEn = 1;
 	I("%s watchdogEn is %d\n", __func__, watchdogEn);
 	ret = mfg_nfc_test(0);
 	if (mfc_nfc_cmd_result > 0) {
@@ -1207,7 +1212,6 @@ static ssize_t mfg_nfcreader(struct device *dev,
 			struct device_attribute *attr, char *buf)
 {
 	int ret;
-	watchdogEn = 1;
 	I("%s watchdogEn is %d\n", __func__, watchdogEn);
 	ret = mfg_nfc_test(1);
 	if (mfc_nfc_cmd_result == 1) {
@@ -1230,7 +1234,6 @@ static ssize_t mfg_nfccard(struct device *dev,
 			struct device_attribute *attr, char *buf)
 {
 	int ret;
-	watchdogEn = 1;
 	I("%s watchdogEn is %d\n", __func__, watchdogEn);
 	ret = mfg_nfc_test(2);
 	if (mfc_nfc_cmd_result == 1) {

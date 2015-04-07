@@ -141,7 +141,7 @@ static struct android_usb_platform_data android_usb_pdata = {
 	.usb_rmnet_interface = "smd,bam",
 	.usb_diag_interface = "diag",
 	.fserial_init_string = "smd:modem,tty,tty:autobot,tty:serial,tty:autobot,tty:acm",
-#ifdef CONFIG_MACH_DUMMY
+#ifdef CONFIG_MACH_MEM_WL
 	.match = memwl_usb_product_id_match,
 #endif
 	.nluns = 1,

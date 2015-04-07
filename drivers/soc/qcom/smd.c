@@ -3213,6 +3213,7 @@ static int check_modem_efs_sync(void)
 static void check_modem_efs_sync_timeout(unsigned timeout)
 {
 	while (timeout > 0 && !check_modem_efs_sync()) {
+		pr_info("%s:wait modem efs_sync\n", __func__);
 		msleep(1000);
 		timeout--;
 	}
@@ -3231,7 +3232,8 @@ static int notify_efs_sync_call
 	case SYS_RESTART:
 	case SYS_POWER_OFF:
 		
-		if ( board_mfg_mode() <= MFG_MODE_MINI ) {
+		if ( ( board_mfg_mode() <= MFG_MODE_MINI )
+			&& ( board_mfg_mode() != MFG_MODE_OFFMODE_CHARGING ) ) {
 			set_modem_efs_sync();
 			check_modem_efs_sync_timeout(10);
 		}

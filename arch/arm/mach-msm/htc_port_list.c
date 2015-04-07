@@ -65,6 +65,88 @@ static int ril_debug_flag = 0;
 		printk(KERN_ERR "[K]" pr_fmt(fmt), ##__VA_ARGS__);  \
 	} while (0)
 
+
+#define NIPQUAD(addr) \
+    ((unsigned char *)&addr)[0], \
+    ((unsigned char *)&addr)[1], \
+    ((unsigned char *)&addr)[2], \
+    ((unsigned char *)&addr)[3]
+
+void port_list_dump_data(struct sock *sk)
+{
+	struct task_struct *task = current;
+	struct inet_sock *inet = NULL;
+	struct net *net = NULL;
+
+	if ( ril_debug_flag == 0 ) {
+		return;
+	}
+
+	if ( sk == NULL ) {
+		return;
+	}
+
+	inet = inet_sk(sk);
+	net = sock_net(sk);
+
+	if ( net ) {
+		PF_LOG_INFO("[Port list] %s: inuse=[%d]\n", __FUNCTION__, sock_prot_inuse_get(net, sk->sk_prot));
+	} else {
+		PF_LOG_INFO("[Port list] %s: net = null\n", __FUNCTION__);
+	}
+
+	if ( inet ) {
+		PF_LOG_INFO("[Port list] %s: Local:%03d.%03d.%03d.%03d:%05d(0x%x) Remote:%03d.%03d.%03d.%03d:%05d(0x%x)\n", __FUNCTION__, NIPQUAD(inet->inet_rcv_saddr), ntohs(inet->inet_sport), inet->inet_rcv_saddr, NIPQUAD(inet->inet_daddr), ntohs(inet->inet_dport), inet->inet_daddr);
+	} else {
+		PF_LOG_INFO("[Port list] %s: inet = null\n", __FUNCTION__);
+	}
+	PF_LOG_INFO("[Port list] %s: sk->sk_shutdown = [%d], sock_flag(sk, SOCK_DONE)=[%d]\n", __FUNCTION__, sk->sk_shutdown, sock_flag(sk, SOCK_DONE));
+	PF_LOG_INFO("[Port list] %s: sk->sk_socket->state=[%d]\n", __FUNCTION__, sk->sk_socket->state);
+	PF_LOG_INFO("[Port list] %s: sk->sk_type=[%d]\n", __FUNCTION__, sk->sk_type);
+	PF_LOG_INFO("[Port list] %s: sk->sk_family=[%d]\n", __FUNCTION__, sk->sk_family);
+	PF_LOG_INFO("[Port list] %s: sk->sk_state=[%d]\n", __FUNCTION__, sk->sk_state);
+	PF_LOG_INFO("[Port list] %s: sk->sk_reuse=[%d]\n", __FUNCTION__, sk->sk_reuse);
+	PF_LOG_INFO("[Port list] %s: sk->sk_reuseport=[%d]\n", __FUNCTION__, sk->sk_reuseport);
+	PF_LOG_INFO("[Port list] %s: sk->sk_flags=[%lu]\n", __FUNCTION__, sk->sk_flags);
+	if (sock_flag(sk, SOCK_DEAD)) PF_LOG_INFO("[Port list] %s: sk->sk_flags[SOCK_DEAD]\n", __FUNCTION__);
+	if (sock_flag(sk, SOCK_DONE)) PF_LOG_INFO("[Port list] %s: sk->sk_flags[SOCK_DONE]\n", __FUNCTION__);
+	if (sock_flag(sk, SOCK_URGINLINE)) PF_LOG_INFO("[Port list] %s: sk->sk_flags[SOCK_URGINLINE]\n", __FUNCTION__);
+	if (sock_flag(sk, SOCK_KEEPOPEN)) PF_LOG_INFO("[Port list] %s: sk->sk_flags[SOCK_KEEPOPEN]\n", __FUNCTION__);
+	if (sock_flag(sk, SOCK_LINGER)) PF_LOG_INFO("[Port list] %s: sk->sk_flags[SOCK_LINGER]\n", __FUNCTION__);
+	if (sock_flag(sk, SOCK_DESTROY)) PF_LOG_INFO("[Port list] %s: sk->sk_flags[SOCK_DESTROY]\n", __FUNCTION__);
+	if (sock_flag(sk, SOCK_BROADCAST)) PF_LOG_INFO("[Port list] %s: sk->sk_flags[SOCK_BROADCAST]\n", __FUNCTION__);
+	if (sock_flag(sk, SOCK_TIMESTAMP)) PF_LOG_INFO("[Port list] %s: sk->sk_flags[SOCK_TIMESTAMP]\n", __FUNCTION__);
+	if (sock_flag(sk, SOCK_ZAPPED)) PF_LOG_INFO("[Port list] %s: sk->sk_flags[SOCK_ZAPPED]\n", __FUNCTION__);
+	if (sock_flag(sk, SOCK_USE_WRITE_QUEUE)) PF_LOG_INFO("[Port list] %s: sk->sk_flags[SOCK_USE_WRITE_QUEUE]\n", __FUNCTION__);
+	if (sock_flag(sk, SOCK_DBG)) PF_LOG_INFO("[Port list] %s: sk->sk_flags[SOCK_DBG]\n", __FUNCTION__);
+	if (sock_flag(sk, SOCK_RCVTSTAMP)) PF_LOG_INFO("[Port list] %s: sk->sk_flags[SOCK_RCVTSTAMP]\n", __FUNCTION__);
+	if (sock_flag(sk, SOCK_RCVTSTAMPNS)) PF_LOG_INFO("[Port list] %s: sk->sk_flags[SOCK_RCVTSTAMPNS]\n", __FUNCTION__);
+	if (sock_flag(sk, SOCK_LOCALROUTE)) PF_LOG_INFO("[Port list] %s: sk->sk_flags[SOCK_LOCALROUTE]\n", __FUNCTION__);
+	if (sock_flag(sk, SOCK_QUEUE_SHRUNK)) PF_LOG_INFO("[Port list] %s: sk->sk_flags[SOCK_QUEUE_SHRUNK]\n", __FUNCTION__);
+	if (sock_flag(sk, SOCK_LOCALROUTE)) PF_LOG_INFO("[Port list] %s: sk->sk_flags[SOCK_LOCALROUTE]\n", __FUNCTION__);
+	if (sock_flag(sk, SOCK_MEMALLOC)) PF_LOG_INFO("[Port list] %s: sk->sk_flags[SOCK_MEMALLOC]\n", __FUNCTION__);
+	if (sock_flag(sk, SOCK_TIMESTAMPING_TX_HARDWARE)) PF_LOG_INFO("[Port list] %s: sk->sk_flags[SOCK_TIMESTAMPING_TX_HARDWARE]\n", __FUNCTION__);
+	if (sock_flag(sk, SOCK_TIMESTAMPING_TX_SOFTWARE)) PF_LOG_INFO("[Port list] %s: sk->sk_flags[SOCK_TIMESTAMPING_TX_SOFTWARE]\n", __FUNCTION__);
+	if (sock_flag(sk, SOCK_TIMESTAMPING_RX_HARDWARE)) PF_LOG_INFO("[Port list] %s: sk->sk_flags[SOCK_TIMESTAMPING_RX_HARDWARE]\n", __FUNCTION__);
+	if (sock_flag(sk, SOCK_TIMESTAMPING_RX_SOFTWARE)) PF_LOG_INFO("[Port list] %s: sk->sk_flags[SOCK_TIMESTAMPING_RX_SOFTWARE]\n", __FUNCTION__);
+	if (sock_flag(sk, SOCK_TIMESTAMPING_SOFTWARE)) PF_LOG_INFO("[Port list] %s: sk->sk_flags[SOCK_TIMESTAMPING_SOFTWARE]\n", __FUNCTION__);
+	if (sock_flag(sk, SOCK_TIMESTAMPING_RAW_HARDWARE)) PF_LOG_INFO("[Port list] %s: sk->sk_flags[SOCK_TIMESTAMPING_RAW_HARDWARE]\n", __FUNCTION__);
+	if (sock_flag(sk, SOCK_TIMESTAMPING_SYS_HARDWARE)) PF_LOG_INFO("[Port list] %s: sk->sk_flags[SOCK_TIMESTAMPING_SYS_HARDWARE]\n", __FUNCTION__);
+	if (sock_flag(sk, SOCK_FASYNC)) PF_LOG_INFO("[Port list] %s: sk->sk_flags[SOCK_FASYNC]\n", __FUNCTION__);
+	if (sock_flag(sk, SOCK_RXQ_OVFL)) PF_LOG_INFO("[Port list] %s: sk->sk_flags[SOCK_RXQ_OVFL]\n", __FUNCTION__);
+	if (sock_flag(sk, SOCK_ZEROCOPY)) PF_LOG_INFO("[Port list] %s: sk->sk_flags[SOCK_ZEROCOPY]\n", __FUNCTION__);
+	if (sock_flag(sk, SOCK_WIFI_STATUS)) PF_LOG_INFO("[Port list] %s: sk->sk_flags[SOCK_WIFI_STATUS]\n", __FUNCTION__);
+	if (sock_flag(sk, SOCK_NOFCS)) PF_LOG_INFO("[Port list] %s: sk->sk_flags[SOCK_NOFCS]\n", __FUNCTION__);
+	if (sock_flag(sk, SOCK_FILTER_LOCKED)) PF_LOG_INFO("[Port list] %s: sk->sk_flags[SOCK_FILTER_LOCKED]\n", __FUNCTION__);
+	if (sock_flag(sk, SOCK_SELECT_ERR_QUEUE)) PF_LOG_INFO("[Port list] %s: sk->sk_flags[SOCK_SELECT_ERR_QUEUE]\n", __FUNCTION__);
+
+	PF_LOG_INFO("[Port list] %s: task->state=[%d][%d]\n", __FUNCTION__, task->flags, task->flags & PF_EXITING);
+
+	PF_LOG_INFO("=== Show stack ===\n");
+	show_stack(0, 0);
+	PF_LOG_INFO("=== Show stack end===\n");
+}
+
 static ssize_t htc_show(struct device *dev,  struct device_attribute *attr,  char *buf)
 {
 	char *s = buf;
@@ -250,7 +332,7 @@ static struct p_list *add_list_udp(int no)
 }
 #endif
 
-static void remove_list(int no)
+static int remove_list(int no)
 {
 	struct list_head *listptr;
 	struct p_list *entry;
@@ -266,8 +348,12 @@ static void remove_list(int no)
 			break;
 		}
 	}
-	if (!get_list)
+	if (!get_list) {
 		PF_LOG_INFO("[Port list] TCP port[%d] failed to remove. Port number is not in list!\n", no);
+		return -1;
+	} else {
+		return 0;
+	}
 }
 #ifdef PACKET_FILTER_UDP
 static void remove_list_udp(int no)
@@ -320,9 +406,24 @@ static int allocate_port_list(void)
 
 int add_or_remove_port(struct sock *sk, int add_or_remove)
 {
-	struct inet_sock *inet = inet_sk(sk);
-	__be32 src = inet->inet_rcv_saddr;
-	__u16 srcp = ntohs(inet->inet_sport);
+	struct inet_sock *inet = NULL;
+	__be32 src = 0;
+	__u16 srcp = 0;
+
+	if ( sk == NULL ) {
+		PF_LOG_INFO("[Port list] add_or_remove_port: sk = null\n");
+		return 0;
+	}
+
+	inet = inet_sk(sk);
+	if (!inet)
+	{
+		PF_LOG_INFO("[Port list] add_or_remove_port: inet = null\n");
+		return 0;
+	}
+
+	src = inet->inet_rcv_saddr;
+	srcp = ntohs(inet->inet_sport);
 
 	wake_lock(&port_suspend_lock);
 	if (!packet_filter_flag) {
@@ -337,15 +438,43 @@ int add_or_remove_port(struct sock *sk, int add_or_remove)
 		}
 	}
 
+
+	if ( sk->sk_protocol == IPPROTO_TCP &&
+		add_or_remove == 0 &&
+		src != 0x0100007F &&
+		sk->sk_state != TCP_CLOSE &&
+		sk->sk_socket->state == SS_CONNECTED) {
+			PF_LOG_INFO("[Port list] can't remove port:[%d]\n", srcp);
+			port_list_dump_data(sk);
+			wake_unlock(&port_suspend_lock);
+			return 0;
+	}
+
 	
 	if (sk->sk_protocol == IPPROTO_TCP && src != 0x0100007F && srcp != 0) {
+		int err = 0;
 		mutex_lock(&port_lock);
 		PF_LOG_INFO("[Port list] TCP port#: [%d]\n", srcp);
-		if (add_or_remove)
-			add_list(srcp);
-		else
-			remove_list(srcp);
-		update_port_list();
+
+		if (add_or_remove) {
+			struct p_list *plist = NULL;
+			plist = add_list(srcp);
+			if ( !plist ) {
+				err = 1;
+				port_list_dump_data(sk);
+			}
+		} else {
+			int ret = 0;
+			ret = remove_list(srcp);
+			if ( ret != 0 ) {
+				err = 1;
+				port_list_dump_data(sk);
+			}
+		}
+
+		if ( !err )
+			update_port_list();
+
 		mutex_unlock(&port_lock);
 	}
 

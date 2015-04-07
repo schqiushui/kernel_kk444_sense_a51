@@ -219,6 +219,13 @@
 		reg-names = "msm_rtb_res", "htc_debug_rtb_res";
 	};
 
+	qcom,smlog-20M {
+		compatible = "qcom,smlog";
+		reg = <0x84400000 0x1C00000>;
+		reg-names = "htc_smlog_res";
+		status = "disabled";
+	};
+
         rpm_bus: qcom,rpm-smd {
                 compatible = "qcom,rpm-smd";
                 rpm-channel-name = "rpm_requests";
@@ -1557,6 +1564,12 @@
 		reg-names = "avtimer_lsb_addr", "avtimer_msb_addr";
 		qcom,clk_div = <27>;
 	};
+
+        htc_radio_smem {
+                compatible = "htc,htc_radio_smem";
+                reg = <0x8cbf0000 0x10000>;
+                reg-names = "smem-start-addr";
+        };
 };
 
 #include "msm-pm8916-rpm-regulator.dtsi"
